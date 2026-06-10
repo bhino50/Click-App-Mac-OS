@@ -32,10 +32,19 @@ final class AppCoordinator {
     var needsOnboarding: Bool = false
     var shouldShowWelcomeGuide = false
 
+    /// `true` when Accessibility access was revoked after the tap was running,
+    /// or when the tap died and could not be reinstalled. Drives the menu bar
+    /// warning state; cleared automatically once the tap is healthy again.
+    private(set) var accessibilityLost = false
+
+    private static let tapHealthInterval: Duration = .seconds(30)
+
     private var eventTap: KeyEventTap?
     private var eventConsumeTask: Task<Void, Never>?
     private var permissionsPollTask: Task<Void, Never>?
     private var folderWatchTask: Task<Void, Never>?
+    private var tapHealthTask: Task<Void, Never>?
+    private var wakeObserver: NSObjectProtocol?
     private var lastKeystrokeMach: UInt64 = 0
     private var didBootstrap = false
 
@@ -59,7 +68,15 @@ final class AppCoordinator {
         }
         startFolderWatcher()
         feedbackController.ensurePanel()
+        registerWakeObserver()
         await ensurePermissionsAndStartTap()
+    }
+
+    /// SF Symbol for the menu bar icon. Switches to a warning when the event
+    /// tap lost Accessibility access and Click can no longer hear keystrokes.
+    var menuBarIconName: String {
+        if accessibilityLost { return "exclamationmark.triangle.fill" }
+        return settings.isEnabled ? "keyboard.fill" : "keyboard"
     }
 
     // MARK: Pack management
@@ -162,11 +179,75 @@ final class AppCoordinator {
         }
         Self.log.notice("Event tap installed; trust=\(self.permissions.isTrusted, privacy: .public)")
         eventTap = tap
+        accessibilityLost = false
+        startTapHealthChecks()
         eventConsumeTask?.cancel()
         eventConsumeTask = Task { @MainActor [weak self] in
             for await event in stream {
                 self?.handle(event: event)
             }
+        }
+    }
+
+    /// Low-frequency watchdog. macOS can revoke Accessibility at any time and
+    /// can disable or destroy event taps (slow-callback kills, sleep/wake),
+    /// all without notifying the app — without this check Click would keep
+    /// running silently.
+    private func startTapHealthChecks() {
+        guard tapHealthTask == nil else { return }
+        tapHealthTask = Task { @MainActor [weak self] in
+            while let self, !Task.isCancelled {
+                try? await Task.sleep(for: Self.tapHealthInterval)
+                await self.verifyTapHealth(reason: "periodic")
+            }
+        }
+    }
+
+    /// Sleep can tear down event taps; re-verify as soon as the Mac wakes.
+    private func registerWakeObserver() {
+        guard wakeObserver == nil else { return }
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                await self?.verifyTapHealth(reason: "wake")
+            }
+        }
+    }
+
+    /// Re-checks Accessibility trust and tap liveness, re-enabling or
+    /// reinstalling the tap when possible and flagging `accessibilityLost`
+    /// (menu bar warning) when it is not.
+    func verifyTapHealth(reason: String) async {
+        permissions.refresh()
+        guard permissions.isTrusted else {
+            if !accessibilityLost {
+                Self.log.error("Tap health (\(reason, privacy: .public)): accessibility access revoked")
+                accessibilityLost = true
+                stopEventTap()
+                // Fast 1s polling so the tap comes back the moment the user
+                // re-grants access in System Settings.
+                startPermissionsPolling()
+            }
+            return
+        }
+        if let eventTap {
+            if eventTap.isHealthy || eventTap.start() {
+                if accessibilityLost {
+                    Self.log.notice("Tap health (\(reason, privacy: .public)): tap healthy again")
+                    accessibilityLost = false
+                }
+                return
+            }
+            Self.log.error("Tap health (\(reason, privacy: .public)): tap could not be re-enabled — reinstalling")
+            stopEventTap()
+        }
+        await startEventTap()
+        if eventTap == nil {
+            Self.log.error("Tap health (\(reason, privacy: .public)): tap reinstall failed")
+            accessibilityLost = true
         }
     }
 

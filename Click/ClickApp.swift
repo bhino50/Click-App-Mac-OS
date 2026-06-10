@@ -9,9 +9,7 @@ struct ClickApp: App {
             MenuBarView(coordinator: appDelegate.coordinator)
             OnboardingPresenter(coordinator: appDelegate.coordinator)
         } label: {
-            Image(systemName: appDelegate.coordinator.settings.isEnabled
-                  ? "keyboard.fill"
-                  : "keyboard")
+            Image(systemName: appDelegate.coordinator.menuBarIconName)
         }
         .menuBarExtraStyle(.window)
 

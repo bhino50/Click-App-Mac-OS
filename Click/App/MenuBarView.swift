@@ -42,6 +42,9 @@ struct MenuBarView: View {
     }
 
     private var statusText: String {
+        if coordinator.accessibilityLost {
+            return "Accessibility access lost"
+        }
         if !coordinator.permissions.isTrusted {
             return "Accessibility access needed"
         }
@@ -97,7 +100,17 @@ struct MenuBarView: View {
 
     private var footer: some View {
         VStack(alignment: .leading, spacing: 6) {
-            if !coordinator.permissions.isTrusted {
+            if coordinator.accessibilityLost {
+                Button {
+                    coordinator.permissions.openSystemSettings()
+                } label: {
+                    Label("Accessibility access lost - open System Settings",
+                          systemImage: "exclamationmark.triangle.fill")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.borderless)
+                .tint(.red)
+            } else if !coordinator.permissions.isTrusted {
                 Button {
                     openWindow(id: "onboarding")
                     NSApp.activate(ignoringOtherApps: true)

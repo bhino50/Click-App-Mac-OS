@@ -30,6 +30,14 @@ final class KeyEventTap {
         return stream
     }
 
+    /// `true` while a tap is installed and currently enabled. macOS disables
+    /// taps it deems slow and destroys them when Accessibility is revoked, so
+    /// callers should poll this to detect a tap that died silently.
+    var isHealthy: Bool {
+        guard let tap else { return false }
+        return CGEvent.tapIsEnabled(tap: tap)
+    }
+
     /// Installs the tap. Returns `false` if Accessibility permission is missing
     /// or the tap could not be created.
     @discardableResult
