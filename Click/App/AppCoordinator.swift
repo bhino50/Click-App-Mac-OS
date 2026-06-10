@@ -18,6 +18,7 @@ final class AppCoordinator {
     var packLoader: SoundPackLoader
     var audio: AudioEngine
     var folderWatcher: PackFolderWatcher
+    var updateChecker: UpdateChecker
     @ObservationIgnored
     private(set) lazy var feedbackController = KeyFeedbackController(coordinator: self)
 
@@ -54,6 +55,7 @@ final class AppCoordinator {
         self.packLoader = SoundPackLoader()
         self.audio = AudioEngine()
         self.folderWatcher = PackFolderWatcher(url: SoundPackLoader.userPacksDirectory)
+        self.updateChecker = UpdateChecker()
     }
 
     // MARK: Lifecycle
@@ -69,6 +71,7 @@ final class AppCoordinator {
         startFolderWatcher()
         feedbackController.ensurePanel()
         registerWakeObserver()
+        updateChecker.scheduleLaunchCheck()
         await ensurePermissionsAndStartTap()
     }
 

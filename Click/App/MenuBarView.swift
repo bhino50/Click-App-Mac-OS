@@ -153,6 +153,20 @@ struct MenuBarView: View {
             .keyboardShortcut(",")
 
             Button {
+                Task { await coordinator.updateChecker.checkNow() }
+            } label: {
+                Label("Check for Updates…", systemImage: "arrow.triangle.2.circlepath")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.borderless)
+            .disabled(coordinator.updateChecker.status == .checking)
+            if let feedback = updateStatusText {
+                Text(feedback)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Button {
                 NSApp.terminate(nil)
             } label: {
                 Label("Quit Click", systemImage: "power")
@@ -160,6 +174,23 @@ struct MenuBarView: View {
             }
             .buttonStyle(.borderless)
             .keyboardShortcut("q")
+        }
+    }
+
+    /// One-line outcome of the most recent update check, shown under the
+    /// "Check for Updates" button. Hidden until a check has run.
+    private var updateStatusText: String? {
+        switch coordinator.updateChecker.status {
+        case .idle:
+            return nil
+        case .checking:
+            return "Checking for updates…"
+        case .upToDate:
+            return "Click is up to date."
+        case .updateAvailable(let version):
+            return "Version \(version) is available."
+        case .failed:
+            return "Couldn't check for updates."
         }
     }
 }
