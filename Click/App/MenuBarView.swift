@@ -18,6 +18,7 @@ struct MenuBarView: View {
             Divider()
             volumeSection
             packSection
+            packErrorSection
             Divider()
             footer
         }
@@ -95,6 +96,19 @@ struct MenuBarView: View {
                 .labelsHidden()
                 .pickerStyle(.menu)
             }
+        }
+    }
+
+    /// Surfaces pack load/import failures without requiring the Settings
+    /// window to be open. Cleared by the coordinator on the next successful
+    /// pack load.
+    @ViewBuilder
+    private var packErrorSection: some View {
+        if let error = coordinator.loadError {
+            Label(error, systemImage: "exclamationmark.triangle.fill")
+                .font(.caption)
+                .foregroundStyle(.orange)
+                .lineLimit(4)
         }
     }
 

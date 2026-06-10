@@ -8,6 +8,8 @@ enum SoundPackLoadError: Error, LocalizedError {
     case manifestInvalid(String)
     case audioMissing(String)
     case decodeFailed(String)
+    case notAPackFolder
+    case importCopyFailed(String)
 
     var errorDescription: String? {
         switch self {
@@ -15,6 +17,8 @@ enum SoundPackLoadError: Error, LocalizedError {
         case .manifestInvalid(let s): "Manifest invalid: \(s)"
         case .audioMissing(let s): "Audio file missing: \(s)"
         case .decodeFailed(let s): "Audio decode failed: \(s)"
+        case .notAPackFolder: "Not a sound pack folder — expected a folder containing manifest.json or config.json."
+        case .importCopyFailed(let s): "Could not copy the pack into the packs folder: \(s)"
         }
     }
 }
@@ -148,17 +152,18 @@ actor SoundPackLoader {
     }
 
     /// Copies a pack folder (or an exported `.clickpack` bundle) into the user
-    /// packs directory. Skips quietly if the source is not a recognized pack.
-    func importPack(at sourceURL: URL) {
+    /// packs directory. Throws when the source is not a recognized pack or the
+    /// copy fails so callers can surface the failure to the user.
+    func importPack(at sourceURL: URL) throws {
         let fm = FileManager.default
         var isDir: ObjCBool = false
         guard fm.fileExists(atPath: sourceURL.path, isDirectory: &isDir), isDir.boolValue else {
-            Self.log.warning("Import skipped — not a directory: \(sourceURL.path, privacy: .public)")
-            return
+            Self.log.warning("Import rejected — not a directory: \(sourceURL.path, privacy: .public)")
+            throw SoundPackLoadError.notAPackFolder
         }
         guard makeHandle(at: sourceURL) != nil else {
-            Self.log.warning("Import skipped — no manifest in \(sourceURL.path, privacy: .public)")
-            return
+            Self.log.warning("Import rejected — no manifest in \(sourceURL.path, privacy: .public)")
+            throw SoundPackLoadError.notAPackFolder
         }
         let destination = Self.userPacksDirectory
             .appendingPathComponent(sourceURL.lastPathComponent, isDirectory: true)
@@ -170,6 +175,7 @@ actor SoundPackLoader {
             Self.log.notice("Imported pack: \(destination.lastPathComponent, privacy: .public)")
         } catch {
             Self.log.error("Import failed: \(error.localizedDescription, privacy: .public)")
+            throw SoundPackLoadError.importCopyFailed(error.localizedDescription)
         }
     }
 

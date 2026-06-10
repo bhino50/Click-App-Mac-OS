@@ -155,10 +155,7 @@ struct SettingsView: View {
         panel.allowsMultipleSelection = true
         panel.message = "Choose .clickpack folders or Mechvibes pack folders"
         guard panel.runModal() == .OK else { return }
-        for url in panel.urls {
-            await coordinator.packLoader.importPack(at: url)
-        }
-        await coordinator.refreshPacks()
+        await coordinator.importPacks(from: panel.urls)
     }
 
     private func handleDrop(providers: [NSItemProvider]) -> Bool {
@@ -167,8 +164,7 @@ struct SettingsView: View {
             _ = provider.loadObject(ofClass: URL.self) { url, _ in
                 guard let url else { return }
                 Task { @MainActor in
-                    await coordinator.packLoader.importPack(at: url)
-                    await coordinator.refreshPacks()
+                    await coordinator.importPacks(from: [url])
                 }
             }
             handled = true

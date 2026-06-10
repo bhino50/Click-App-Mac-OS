@@ -22,6 +22,19 @@ struct PackHandle: Sendable, Identifiable, Hashable {
     let kind: Kind
 }
 
+/// Outcome of converting a pack to an engine processing format. Carries the
+/// converted pack plus how many source buffers were dropped along the way.
+nonisolated
+struct PackConversionResult {
+    let pack: SoundPack
+    let failedBufferCount: Int
+    let totalBufferCount: Int
+
+    var allBuffersFailed: Bool {
+        totalBufferCount > 0 && failedBufferCount == totalBufferCount
+    }
+}
+
 /// A fully-loaded pack ready for playback. Owned by the audio actor.
 ///
 /// Marked `@unchecked Sendable` because `AVAudioPCMBuffer` is a non-Sendable
@@ -76,19 +89,30 @@ final class SoundPack: @unchecked Sendable {
     /// `AVAudioPlayerNode.scheduleBuffer` throws an Obj-C exception when the
     /// buffer's format does not match the node's connection format, so packs
     /// must be converted to the engine's processing format before they're
-    /// installed. Buffers that fail to convert are dropped from the copy.
-    func converted(to format: AVAudioFormat) -> SoundPack {
+    /// installed. Buffers that fail to convert are dropped from the copy; the
+    /// result reports how many were dropped so callers can surface total or
+    /// partial conversion failures instead of playing silence.
+    func converted(to format: AVAudioFormat) -> PackConversionResult {
+        var failed = 0
+        var total = 0
         var samples: [Int64: [AVAudioPCMBuffer]] = [:]
         for (key, bucket) in samplesByKeyCode {
+            total += bucket.count
             let converted = bucket.compactMap { Self.convertBuffer($0, to: format) }
+            failed += bucket.count - converted.count
             if !converted.isEmpty { samples[key] = converted }
         }
+        total += defaultSamples.count
         let defaults = defaultSamples.compactMap { Self.convertBuffer($0, to: format) }
-        return SoundPack(name: name,
-                         author: author,
-                         kind: kind,
-                         samplesByKeyCode: samples,
-                         defaultSamples: defaults)
+        failed += defaultSamples.count - defaults.count
+        let pack = SoundPack(name: name,
+                             author: author,
+                             kind: kind,
+                             samplesByKeyCode: samples,
+                             defaultSamples: defaults)
+        return PackConversionResult(pack: pack,
+                                    failedBufferCount: failed,
+                                    totalBufferCount: total)
     }
 
     static func convertBuffer(_ source: AVAudioPCMBuffer, to format: AVAudioFormat) -> AVAudioPCMBuffer? {

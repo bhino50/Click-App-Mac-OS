@@ -73,9 +73,10 @@ final class AppCoordinator {
     }
 
     /// SF Symbol for the menu bar icon. Switches to a warning when the event
-    /// tap lost Accessibility access and Click can no longer hear keystrokes.
+    /// tap lost Accessibility access or a sound pack failed to load or import,
+    /// so failures are visible without opening Settings.
     var menuBarIconName: String {
-        if accessibilityLost { return "exclamationmark.triangle.fill" }
+        if accessibilityLost || loadError != nil { return "exclamationmark.triangle.fill" }
         return settings.isEnabled ? "keyboard.fill" : "keyboard"
     }
 
@@ -99,8 +100,12 @@ final class AppCoordinator {
     func selectPack(handle: PackHandle) async -> Bool {
         do {
             let pack = try await packLoader.load(handle: handle)
+            if let installError = await audio.installPack(pack) {
+                loadError = "\(handle.name): \(installError)"
+                Self.log.error("Pack install failed for \(handle.name, privacy: .public): \(installError, privacy: .public)")
+                return false
+            }
             currentPack = pack
-            await audio.installPack(pack)
             settings.selectedPackName = pack.name
             loadError = nil
             return true
@@ -114,6 +119,25 @@ final class AppCoordinator {
     func selectFirstAvailablePack() async {
         if let first = availablePacks.first {
             await selectPack(handle: first)
+        }
+    }
+
+    /// Imports each URL as a pack and refreshes discovery. Failures are
+    /// surfaced through `loadError` (menu bar warning plus Settings); the
+    /// error clears on the next successful pack load.
+    func importPacks(from urls: [URL]) async {
+        var failures: [String] = []
+        for url in urls {
+            do {
+                try await packLoader.importPack(at: url)
+            } catch {
+                failures.append("\(url.lastPathComponent): \(error.localizedDescription)")
+                Self.log.error("Pack import failed for \(url.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            }
+        }
+        await refreshPacks()
+        if !failures.isEmpty {
+            loadError = failures.joined(separator: "\n")
         }
     }
 

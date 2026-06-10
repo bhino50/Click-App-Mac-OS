@@ -67,8 +67,8 @@ actor AudioEngine {
         pack = nil
         processingFormat = nil
         start()
-        if let savedRaw {
-            installPack(savedRaw)
+        if let savedRaw, let installError = installPack(savedRaw) {
+            Self.log.error("reinstall after config change failed: \(installError, privacy: .public)")
         }
     }
 
@@ -88,7 +88,11 @@ actor AudioEngine {
             && buffer.isInterleaved == expected.isInterleaved
     }
 
-    func installPack(_ pack: SoundPack) {
+    /// Installs `pack`, converting every buffer to the engine's processing
+    /// format. Returns a user-facing error message when the pack could not be
+    /// installed — the previously installed pack stays active — or `nil` on
+    /// success. Partial conversion failures are tolerated and logged.
+    func installPack(_ pack: SoundPack) -> String? {
         // Make sure the engine is running so we have a valid processing format.
         if processingFormat == nil { start() }
         guard let format = processingFormat else {
@@ -96,11 +100,24 @@ actor AudioEngine {
             // Obj-C exception on the first keypress. Leave the previous pack in
             // place and surface the failure.
             Self.log.error("installPack: no processing format available — pack \(pack.name, privacy: .public) not installed")
-            return
+            return "The audio engine is not running, so the pack could not be installed."
+        }
+        let result = pack.converted(to: format)
+        guard result.totalBufferCount > 0 else {
+            Self.log.error("installPack: pack \(pack.name, privacy: .public) contains no samples — not installed")
+            return "The pack contains no playable sounds."
+        }
+        if result.allBuffersFailed {
+            Self.log.error("installPack: all \(result.totalBufferCount) buffers failed to convert for \(pack.name, privacy: .public) — keeping previous pack")
+            return "None of the pack's sounds could be converted for playback. The previous pack is still active."
+        }
+        if result.failedBufferCount > 0 {
+            Self.log.warning("installPack: \(result.failedBufferCount)/\(result.totalBufferCount) buffers failed to convert for \(pack.name, privacy: .public)")
         }
         rawPack = pack
-        self.pack = pack.converted(to: format)
+        self.pack = result.pack
         Self.log.notice("Installed pack \(pack.name, privacy: .public) — converted to \(format.sampleRate)Hz \(format.channelCount)ch")
+        return nil
     }
 
     /// Picks a sample for `keyCode` (with random selection across variants),
