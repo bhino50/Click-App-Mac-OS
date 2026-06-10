@@ -1,0 +1,351 @@
+{
+  "name": "Click Light",
+  "author": "Click",
+  "version": "1.1.0",
+  "defaultSound": "audio/default-1.wav",
+  "keyMap": {
+    "0": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "1": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "2": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "3": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "4": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "5": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "6": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "7": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "8": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "9": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "11": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "12": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "13": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "14": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "15": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "16": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "17": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "18": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "19": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "20": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "21": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "22": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "23": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "24": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "25": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "26": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "27": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "28": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "29": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "30": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "31": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "32": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "33": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "34": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "35": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "37": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "38": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "39": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "40": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "41": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "42": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "43": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "44": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "45": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "46": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "47": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "50": [
+      "audio/default-1.wav",
+      "audio/default-2.wav",
+      "audio/default-3.wav",
+      "audio/default-4.wav",
+      "audio/default-5.wav"
+    ],
+    "49": [
+      "audio/space-1.wav",
+      "audio/space-2.wav",
+      "audio/space-3.wav"
+    ],
+    "36": [
+      "audio/enter.wav"
+    ],
+    "51": [
+      "audio/backspace.wav"
+    ],
+    "48": [
+      "audio/tab.wav"
+    ]
+  }
+}
