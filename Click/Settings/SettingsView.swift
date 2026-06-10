@@ -116,7 +116,20 @@ struct SettingsView: View {
 
     private var appsSection: some View {
         SettingsCard(title: "Muted apps") {
-            Text("Click stays quiet while these apps are frontmost. One bundle ID per line (e.g. `com.apple.dt.Xcode`).")
+            Text("Click stays quiet while these apps are frontmost.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Menu {
+                ForEach(runningApps) { app in
+                    Button("\(app.name) — \(app.bundleID)") {
+                        appendMutedBundleID(app.bundleID)
+                    }
+                }
+            } label: {
+                Label("Mute a running app…", systemImage: "plus.circle")
+            }
+            .fixedSize()
+            Text("Or edit the list directly, one bundle ID per line (e.g. `com.apple.dt.Xcode`).")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             TextEditor(text: Binding(
@@ -142,6 +155,35 @@ struct SettingsView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
+    }
+
+    // MARK: Muted apps
+
+    /// A regular (Dock-visible) running application offered by the mute menu.
+    private struct RunningApp: Identifiable {
+        let name: String
+        let bundleID: String
+        var id: String { bundleID }
+    }
+
+    /// Snapshot of running regular apps, deduplicated by bundle ID and
+    /// sorted by display name. Evaluated when the menu opens, so the list
+    /// stays current without observing NSWorkspace.
+    private var runningApps: [RunningApp] {
+        var seen = Set<String>()
+        return NSWorkspace.shared.runningApplications
+            .filter { $0.activationPolicy == .regular }
+            .compactMap { app -> RunningApp? in
+                guard let bundleID = app.bundleIdentifier,
+                      seen.insert(bundleID).inserted else { return nil }
+                return RunningApp(name: app.localizedName ?? bundleID, bundleID: bundleID)
+            }
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
+    private func appendMutedBundleID(_ bundleID: String) {
+        guard !coordinator.settings.mutedBundleIDs.contains(bundleID) else { return }
+        coordinator.settings.mutedBundleIDs.append(bundleID)
     }
 
     // MARK: Actions
