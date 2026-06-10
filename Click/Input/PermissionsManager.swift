@@ -29,9 +29,16 @@ final class PermissionsManager {
         return trusted
     }
 
+    /// Deep link into System Settings → Privacy & Security → Accessibility.
+    /// Built from a constant string, so construction cannot fail at runtime,
+    /// but it is guarded at the call site rather than force-unwrapped.
+    private static let accessibilitySettingsURL = URL(
+        string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+    )
+
     /// Opens System Settings → Privacy & Security → Accessibility.
     func openSystemSettings() {
-        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
+        guard let url = Self.accessibilitySettingsURL else { return }
         NSWorkspace.shared.open(url)
     }
 }

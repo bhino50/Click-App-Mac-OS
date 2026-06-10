@@ -19,7 +19,6 @@ actor PackFolderWatcher {
 
     func changes() -> AsyncStream<Void> {
         ensureStream()
-        return stream!
     }
 
     func start() {
@@ -51,11 +50,15 @@ actor PackFolderWatcher {
         source = src
     }
 
-    private func ensureStream() {
-        guard stream == nil else { return }
+    /// Returns the existing stream, creating it (and its continuation) on
+    /// first use so callers never observe a nil stream.
+    @discardableResult
+    private func ensureStream() -> AsyncStream<Void> {
+        if let stream { return stream }
         let (s, c) = AsyncStream.makeStream(of: Void.self, bufferingPolicy: .bufferingNewest(1))
         self.stream = s
         self.continuation = c
+        return s
     }
 
     func stop() {
