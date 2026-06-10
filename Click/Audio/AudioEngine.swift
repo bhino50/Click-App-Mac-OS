@@ -23,7 +23,7 @@ actor AudioEngine {
         let format = engine.mainMixerNode.outputFormat(forBus: 0)
         processingFormat = format
         if pool == nil {
-            pool = PlayerNodePool(engine: engine, mixer: engine.mainMixerNode, format: format, size: 16)
+            pool = PlayerNodePool(engine: engine, mixer: engine.mainMixerNode, format: format)
         }
         do {
             try engine.start()

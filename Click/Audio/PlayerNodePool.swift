@@ -6,10 +6,15 @@ import Foundation
 /// can play concurrently without allocating during playback.
 nonisolated
 final class PlayerNodePool: @unchecked Sendable {
+    /// Number of concurrent voices. Fast typists overlap enough keystrokes
+    /// that 16 nodes audibly cut off still-playing samples when the pool
+    /// wraps around; 32 leaves comfortable headroom.
+    static let defaultVoiceCount = 32
+
     let nodes: [AVAudioPlayerNode]
     private var cursor: Int = 0
 
-    init(engine: AVAudioEngine, mixer: AVAudioMixerNode, format: AVAudioFormat, size: Int = 16) {
+    init(engine: AVAudioEngine, mixer: AVAudioMixerNode, format: AVAudioFormat, size: Int = PlayerNodePool.defaultVoiceCount) {
         var built: [AVAudioPlayerNode] = []
         built.reserveCapacity(size)
         for _ in 0..<size {
