@@ -10,6 +10,7 @@ enum SoundPackLoadError: Error, LocalizedError {
     case decodeFailed(String)
     case notAPackFolder
     case importCopyFailed(String)
+    case unsupportedOggAudio(Int)
 
     var errorDescription: String? {
         switch self {
@@ -19,6 +20,8 @@ enum SoundPackLoadError: Error, LocalizedError {
         case .decodeFailed(let s): "Audio decode failed: \(s)"
         case .notAPackFolder: "Not a sound pack folder — expected a folder containing manifest.json or config.json."
         case .importCopyFailed(let s): "Could not copy the pack into the packs folder: \(s)"
+        case .unsupportedOggAudio(let count):
+            "The pack references \(count) Ogg Vorbis (.ogg) sound \(count == 1 ? "file" : "files"), which macOS cannot decode. Convert the sounds to wav or mp3 (for example with ffmpeg), then import again."
         }
     }
 }
@@ -161,9 +164,14 @@ actor SoundPackLoader {
             Self.log.warning("Import rejected — not a directory: \(sourceURL.path, privacy: .public)")
             throw SoundPackLoadError.notAPackFolder
         }
-        guard makeHandle(at: sourceURL) != nil else {
+        guard let handle = makeHandle(at: sourceURL) else {
             Self.log.warning("Import rejected — no manifest in \(sourceURL.path, privacy: .public)")
             throw SoundPackLoadError.notAPackFolder
+        }
+        let oggFiles = referencedOggFiles(in: handle)
+        guard oggFiles.isEmpty else {
+            Self.log.warning("Import rejected — \(oggFiles.count) ogg files referenced by \(sourceURL.path, privacy: .public)")
+            throw SoundPackLoadError.unsupportedOggAudio(oggFiles.count)
         }
         let destination = Self.userPacksDirectory
             .appendingPathComponent(sourceURL.lastPathComponent, isDirectory: true)
@@ -177,6 +185,26 @@ actor SoundPackLoader {
             Self.log.error("Import failed: \(error.localizedDescription, privacy: .public)")
             throw SoundPackLoadError.importCopyFailed(error.localizedDescription)
         }
+    }
+
+    /// Sound files referenced by the pack manifest that AVFoundation cannot
+    /// decode (Ogg Vorbis). Checked at import time so the user gets a clear
+    /// error instead of a pack that plays silence.
+    private nonisolated func referencedOggFiles(in handle: PackHandle) -> [String] {
+        let referenced: [String]
+        switch handle.kind {
+        case .clickpack:
+            let manifestURL = handle.url.appendingPathComponent("manifest.json")
+            guard let data = try? Data(contentsOf: manifestURL),
+                  let manifest = try? JSONDecoder().decode(ClickPackManifest.self, from: data) else {
+                return []
+            }
+            let mapped = manifest.keyMap?.values.flatMap { $0 } ?? []
+            referenced = mapped + [manifest.defaultSound].compactMap { $0 }
+        case .mechvibesMulti, .mechvibesSingle:
+            referenced = MechvibesAdapter.referencedAudioFiles(folder: handle.url)
+        }
+        return referenced.filter { $0.lowercased().hasSuffix(".ogg") }
     }
 
     /// Resolves a pack-relative path and rejects anything that escapes

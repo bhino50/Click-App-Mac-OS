@@ -55,6 +55,19 @@ enum MechvibesAdapter {
                                  keyMap: nil)
     }
 
+    /// Audio file names referenced by a Mechvibes `config.json` — the single
+    /// `sound` file or every file-typed entry in `defines`. Used by the import
+    /// guard to detect formats AVFoundation cannot decode.
+    static func referencedAudioFiles(folder: URL) -> [String] {
+        guard let cfg = try? decodeConfig(at: folder) else { return [] }
+        var files: [String] = []
+        if let sound = cfg.sound { files.append(sound) }
+        for value in (cfg.defines ?? [:]).values {
+            if case let .file(file) = value { files.append(file) }
+        }
+        return files
+    }
+
     /// Returns the right `PackHandle.Kind` if `folder` looks like a Mechvibes pack.
     static func classify(folder: URL) -> PackHandle.Kind? {
         guard let cfg = try? decodeConfig(at: folder) else { return nil }
