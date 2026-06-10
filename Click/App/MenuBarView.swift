@@ -1,0 +1,138 @@
+import AppKit
+import SwiftUI
+
+/// Compact panel shown when the user clicks the menu bar icon. Uses
+/// `.menuBarExtraStyle(.window)` so it can render real SwiftUI controls
+/// (sliders, custom layouts) instead of being limited to NSMenu items.
+struct MenuBarView: View {
+    @Bindable var coordinator: AppCoordinator
+    @Environment(\.openWindow) private var openWindow
+
+    init(coordinator: AppCoordinator) {
+        self._coordinator = Bindable(coordinator)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            header
+            Divider()
+            volumeSection
+            packSection
+            Divider()
+            footer
+        }
+        .padding(14)
+        .frame(width: 280)
+    }
+
+    private var header: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Click").font(.headline)
+                Text(statusText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Toggle("", isOn: $coordinator.settings.isEnabled)
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .controlSize(.small)
+        }
+    }
+
+    private var statusText: String {
+        if !coordinator.permissions.isTrusted {
+            return "Accessibility access needed"
+        }
+        return coordinator.settings.isEnabled ? "On" : "Off"
+    }
+
+    private var volumeSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Image(systemName: "speaker.fill").font(.caption2).foregroundStyle(.secondary)
+                Slider(value: $coordinator.settings.volume, in: 0...1)
+                Image(systemName: "speaker.wave.3.fill").font(.caption2).foregroundStyle(.secondary)
+                Text("\(Int(coordinator.settings.volume * 100))%")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .frame(width: 36, alignment: .trailing)
+            }
+            Button {
+                Task { await coordinator.playTestSound() }
+            } label: {
+                Label("Test sound", systemImage: "play.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+        }
+    }
+
+    @ViewBuilder
+    private var packSection: some View {
+        if coordinator.availablePacks.isEmpty {
+            Text("No sound packs installed")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        } else {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Sound pack").font(.caption).foregroundStyle(.secondary)
+                Picker("", selection: Binding(
+                    get: { coordinator.currentPack?.name ?? coordinator.availablePacks.first?.name ?? "" },
+                    set: { name in
+                        Task { await coordinator.selectPack(named: name) }
+                    }
+                )) {
+                    ForEach(coordinator.availablePacks) { handle in
+                        Text(handle.name).tag(handle.name)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+            }
+        }
+    }
+
+    private var footer: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if !coordinator.permissions.isTrusted {
+                Button {
+                    openWindow(id: "onboarding")
+                    NSApp.activate(ignoringOtherApps: true)
+                } label: {
+                    Label("Grant Accessibility…", systemImage: "exclamationmark.shield")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.borderless)
+                .tint(.orange)
+            }
+            Button {
+                coordinator.openWelcomeGuide()
+            } label: {
+                Label("Setup Guide…", systemImage: "questionmark.circle")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.borderless)
+            Button {
+                openWindow(id: "settings")
+                NSApp.activate(ignoringOtherApps: true)
+            } label: {
+                Label("Settings…", systemImage: "gear")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.borderless)
+            .keyboardShortcut(",")
+
+            Button {
+                NSApp.terminate(nil)
+            } label: {
+                Label("Quit Click", systemImage: "power")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.borderless)
+            .keyboardShortcut("q")
+        }
+    }
+}
