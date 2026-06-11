@@ -1,3 +1,8 @@
+// Self-update is for the direct-download channel only. The App Store build
+// must not contain update-check or website-download code paths (App Review
+// guidelines 2.3.10 / 3.1.x) — Apple delivers updates there.
+#if !MAS_BUILD
+
 import AppKit
 import Foundation
 import Observation
@@ -164,3 +169,5 @@ final class UpdateChecker {
         static let lastCheckAt = "click.update.lastCheckAt"
     }
 }
+
+#endif

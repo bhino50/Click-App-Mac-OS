@@ -1,8 +1,8 @@
 import AppKit
-import ApplicationServices
+import CoreGraphics
 import Observation
 
-/// Tracks whether the app is trusted for Accessibility (required to install a
+/// Tracks whether the app is trusted for Input Monitoring (required to install a
 /// global `CGEventTap`). Re-check via `refresh()`; deep-link with `openSettings()`.
 @MainActor
 @Observable
@@ -16,29 +16,28 @@ final class PermissionsManager {
     /// Re-reads trust state without prompting. Cheap; safe to poll once a
     /// second while the onboarding window is visible.
     func refresh() {
-        isTrusted = AXIsProcessTrusted()
+        isTrusted = CGPreflightListenEventAccess()
     }
 
-    /// Triggers macOS's "App wants accessibility access" prompt if the app is
+    /// Triggers macOS's Input Monitoring prompt if the app is
     /// not yet trusted. Returns immediately with the current trust value.
     @discardableResult
     func requestPrompt() -> Bool {
-        let key = "AXTrustedCheckOptionPrompt"
-        let trusted = AXIsProcessTrustedWithOptions([key: true] as CFDictionary)
+        let trusted = CGRequestListenEventAccess()
         isTrusted = trusted
         return trusted
     }
 
-    /// Deep link into System Settings → Privacy & Security → Accessibility.
+    /// Deep link into System Settings → Privacy & Security → Input Monitoring.
     /// Built from a constant string, so construction cannot fail at runtime,
     /// but it is guarded at the call site rather than force-unwrapped.
-    private static let accessibilitySettingsURL = URL(
-        string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+    private static let inputMonitoringSettingsURL = URL(
+        string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent"
     )
 
-    /// Opens System Settings → Privacy & Security → Accessibility.
+    /// Opens System Settings → Privacy & Security → Input Monitoring.
     func openSystemSettings() {
-        guard let url = Self.accessibilitySettingsURL else { return }
+        guard let url = Self.inputMonitoringSettingsURL else { return }
         NSWorkspace.shared.open(url)
     }
 }

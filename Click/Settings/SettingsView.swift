@@ -46,11 +46,11 @@ struct SettingsView: View {
     @ViewBuilder
     private var permissionsBadge: some View {
         if coordinator.permissions.isTrusted {
-            Label("Accessibility on", systemImage: "checkmark.seal.fill")
+            Label("Input Monitoring on", systemImage: "checkmark.seal.fill")
                 .labelStyle(.titleAndIcon)
                 .foregroundStyle(.green)
         } else {
-            Button("Grant Accessibility…") {
+            Button("Grant Input Monitoring…") {
                 coordinator.permissions.openSystemSettings()
             }
             .controlSize(.large)

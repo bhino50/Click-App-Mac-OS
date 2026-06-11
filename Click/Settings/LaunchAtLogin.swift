@@ -11,7 +11,11 @@ enum LaunchAtLogin {
         SMAppService.mainApp.status == .enabled
     }
 
-    static func set(_ enabled: Bool) {
+    /// Returns `nil` on success, or a short human-readable reason when
+    /// registering/unregistering failed (running from a non-canonical path,
+    /// quarantined zip, etc.) so callers can surface it in the UI.
+    @discardableResult
+    static func set(_ enabled: Bool) -> String? {
         do {
             if enabled {
                 if SMAppService.mainApp.status != .enabled {
@@ -22,8 +26,10 @@ enum LaunchAtLogin {
                     try SMAppService.mainApp.unregister()
                 }
             }
+            return nil
         } catch {
             log.error("Launch-at-login toggle failed: \(error.localizedDescription, privacy: .public)")
+            return error.localizedDescription
         }
     }
 }

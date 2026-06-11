@@ -43,11 +43,11 @@ struct MenuBarView: View {
     }
 
     private var statusText: String {
-        if coordinator.accessibilityLost {
-            return "Accessibility access lost"
+        if coordinator.inputMonitoringLost {
+            return "Input Monitoring access lost"
         }
         if !coordinator.permissions.isTrusted {
-            return "Accessibility access needed"
+            return "Input Monitoring access needed"
         }
         return coordinator.settings.isEnabled ? "On" : "Off"
     }
@@ -114,11 +114,11 @@ struct MenuBarView: View {
 
     private var footer: some View {
         VStack(alignment: .leading, spacing: 6) {
-            if coordinator.accessibilityLost {
+            if coordinator.inputMonitoringLost {
                 Button {
                     coordinator.permissions.openSystemSettings()
                 } label: {
-                    Label("Accessibility access lost - open System Settings",
+                    Label("Input Monitoring access lost - open System Settings",
                           systemImage: "exclamationmark.triangle.fill")
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -129,7 +129,7 @@ struct MenuBarView: View {
                     openWindow(id: "onboarding")
                     NSApp.activate(ignoringOtherApps: true)
                 } label: {
-                    Label("Grant Accessibility…", systemImage: "exclamationmark.shield")
+                    Label("Grant Input Monitoring…", systemImage: "exclamationmark.shield")
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.borderless)
@@ -152,19 +152,9 @@ struct MenuBarView: View {
             .buttonStyle(.borderless)
             .keyboardShortcut(",")
 
-            Button {
-                Task { await coordinator.updateChecker.checkNow() }
-            } label: {
-                Label("Check for Updates…", systemImage: "arrow.triangle.2.circlepath")
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .buttonStyle(.borderless)
-            .disabled(coordinator.updateChecker.status == .checking)
-            if let feedback = updateStatusText {
-                Text(feedback)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+            #if !MAS_BUILD
+            updateSection
+            #endif
 
             Button {
                 NSApp.terminate(nil)
@@ -179,6 +169,25 @@ struct MenuBarView: View {
 
     /// One-line outcome of the most recent update check, shown under the
     /// "Check for Updates" button. Hidden until a check has run.
+    #if !MAS_BUILD
+    private var updateSection: some View {
+        Group {
+            Button {
+                Task { await coordinator.updateChecker.checkNow() }
+            } label: {
+                Label("Check for Updates…", systemImage: "arrow.triangle.2.circlepath")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.borderless)
+            .disabled(coordinator.updateChecker.status == .checking)
+            if let feedback = updateStatusText {
+                Text(feedback)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
     private var updateStatusText: String? {
         switch coordinator.updateChecker.status {
         case .idle:
@@ -193,4 +202,5 @@ struct MenuBarView: View {
             return "Couldn't check for updates."
         }
     }
+    #endif
 }

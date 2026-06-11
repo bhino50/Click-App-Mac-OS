@@ -1,3 +1,7 @@
+// Only the self-updater compares versions; exclude from the App Store build
+// alongside UpdateChecker.
+#if !MAS_BUILD
+
 import Foundation
 
 /// A dot-separated numeric version such as "1.0" or "2.3.1".
@@ -62,3 +66,5 @@ struct SemanticVersion: Comparable, CustomStringConvertible, Sendable {
         }
     }
 }
+
+#endif

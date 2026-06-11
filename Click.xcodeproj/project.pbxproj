@@ -266,7 +266,6 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright (c) 2026 Brandon Hinojosa. MIT License.";
-				INFOPLIST_KEY_NSAccessibilityUsageDescription = "Click needs Accessibility access to listen for global keyboard events so it can play sounds as you type. Keystrokes are never stored or transmitted.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -299,7 +298,6 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright (c) 2026 Brandon Hinojosa. MIT License.";
-				INFOPLIST_KEY_NSAccessibilityUsageDescription = "Click needs Accessibility access to listen for global keyboard events so it can play sounds as you type. Keystrokes are never stored or transmitted.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",

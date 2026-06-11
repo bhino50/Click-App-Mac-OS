@@ -18,7 +18,9 @@ final class AppCoordinator {
     var packLoader: SoundPackLoader
     var audio: AudioEngine
     var folderWatcher: PackFolderWatcher
+    #if !MAS_BUILD
     var updateChecker: UpdateChecker
+    #endif
     @ObservationIgnored
     private(set) lazy var feedbackController = KeyFeedbackController(coordinator: self)
 
@@ -28,15 +30,15 @@ final class AppCoordinator {
     private(set) var lastPressAt: Date?
     private(set) var loadError: String?
 
-    /// Set to `true` when accessibility permission is missing. Views observe
+    /// Set to `true` when Input Monitoring permission is missing. Views observe
     /// this to surface the onboarding window.
     var needsOnboarding: Bool = false
     var shouldShowWelcomeGuide = false
 
-    /// `true` when Accessibility access was revoked after the tap was running,
+    /// `true` when Input Monitoring access was revoked after the tap was running,
     /// or when the tap died and could not be reinstalled. Drives the menu bar
     /// warning state; cleared automatically once the tap is healthy again.
-    private(set) var accessibilityLost = false
+    private(set) var inputMonitoringLost = false
 
     private static let tapHealthInterval: Duration = .seconds(30)
 
@@ -55,7 +57,9 @@ final class AppCoordinator {
         self.packLoader = SoundPackLoader()
         self.audio = AudioEngine()
         self.folderWatcher = PackFolderWatcher(url: SoundPackLoader.userPacksDirectory)
+        #if !MAS_BUILD
         self.updateChecker = UpdateChecker()
+        #endif
     }
 
     // MARK: Lifecycle
@@ -71,15 +75,17 @@ final class AppCoordinator {
         startFolderWatcher()
         feedbackController.ensurePanel()
         registerWakeObserver()
+        #if !MAS_BUILD
         updateChecker.scheduleLaunchCheck()
+        #endif
         await ensurePermissionsAndStartTap()
     }
 
     /// SF Symbol for the menu bar icon. Switches to a warning when the event
-    /// tap lost Accessibility access or a sound pack failed to load or import,
+    /// tap lost Input Monitoring access or a sound pack failed to load or import,
     /// so failures are visible without opening Settings.
     var menuBarIconName: String {
-        if accessibilityLost || loadError != nil { return "exclamationmark.triangle.fill" }
+        if inputMonitoringLost || loadError != nil { return "exclamationmark.triangle.fill" }
         return settings.isEnabled ? "keyboard.fill" : "keyboard"
     }
 
@@ -131,6 +137,13 @@ final class AppCoordinator {
     func importPacks(from urls: [URL]) async {
         var failures: [String] = []
         for url in urls {
+            // In the sandboxed App Store build, drag-and-dropped URLs arrive
+            // security-scoped; access must be claimed before reading. Returns
+            // false for open-panel URLs and in the direct build — harmless.
+            let scoped = url.startAccessingSecurityScopedResource()
+            defer {
+                if scoped { url.stopAccessingSecurityScopedResource() }
+            }
             do {
                 try await packLoader.importPack(at: url)
             } catch {
@@ -164,7 +177,7 @@ final class AppCoordinator {
             await startEventTap()
             return
         }
-        // Don't fire macOS's native "wants accessibility access" prompt here.
+        // Don't fire macOS's native Input Monitoring prompt here.
         // Bootstrap-time prompts collide with the Welcome window if the user
         // clicks the menu bar's Grant button — two dialogs stack on screen.
         // The Welcome window's "Open System Settings" button calls
@@ -201,12 +214,12 @@ final class AppCoordinator {
         let tap = KeyEventTap()
         let stream = tap.events()
         guard tap.start() else {
-            Self.log.error("Failed to start event tap (AXIsProcessTrusted=\(self.permissions.isTrusted, privacy: .public))")
+            Self.log.error("Failed to start event tap (Input Monitoring trusted=\(self.permissions.isTrusted, privacy: .public))")
             return
         }
         Self.log.notice("Event tap installed; trust=\(self.permissions.isTrusted, privacy: .public)")
         eventTap = tap
-        accessibilityLost = false
+        inputMonitoringLost = false
         startTapHealthChecks()
         eventConsumeTask?.cancel()
         eventConsumeTask = Task { @MainActor [weak self] in
@@ -216,7 +229,7 @@ final class AppCoordinator {
         }
     }
 
-    /// Low-frequency watchdog. macOS can revoke Accessibility at any time and
+    /// Low-frequency watchdog. macOS can revoke Input Monitoring at any time and
     /// can disable or destroy event taps (slow-callback kills, sleep/wake),
     /// all without notifying the app — without this check Click would keep
     /// running silently.
@@ -244,15 +257,15 @@ final class AppCoordinator {
         }
     }
 
-    /// Re-checks Accessibility trust and tap liveness, re-enabling or
-    /// reinstalling the tap when possible and flagging `accessibilityLost`
+    /// Re-checks Input Monitoring trust and tap liveness, re-enabling or
+    /// reinstalling the tap when possible and flagging `inputMonitoringLost`
     /// (menu bar warning) when it is not.
     func verifyTapHealth(reason: String) async {
         permissions.refresh()
         guard permissions.isTrusted else {
-            if !accessibilityLost {
-                Self.log.error("Tap health (\(reason, privacy: .public)): accessibility access revoked")
-                accessibilityLost = true
+            if !inputMonitoringLost {
+                Self.log.error("Tap health (\(reason, privacy: .public)): Input Monitoring access revoked")
+                inputMonitoringLost = true
                 stopEventTap()
                 // Fast 1s polling so the tap comes back the moment the user
                 // re-grants access in System Settings.
@@ -262,9 +275,9 @@ final class AppCoordinator {
         }
         if let eventTap {
             if eventTap.isHealthy || eventTap.start() {
-                if accessibilityLost {
+                if inputMonitoringLost {
                     Self.log.notice("Tap health (\(reason, privacy: .public)): tap healthy again")
-                    accessibilityLost = false
+                    inputMonitoringLost = false
                 }
                 return
             }
@@ -274,7 +287,7 @@ final class AppCoordinator {
         await startEventTap()
         if eventTap == nil {
             Self.log.error("Tap health (\(reason, privacy: .public)): tap reinstall failed")
-            accessibilityLost = true
+            inputMonitoringLost = true
         }
     }
 
@@ -294,7 +307,7 @@ final class AppCoordinator {
     }
 
     /// Plays a sound on demand — handy for verifying audio works before the
-    /// global event tap is granted accessibility permission. Uses the default
+    /// global event tap is granted Input Monitoring permission. Uses the default
     /// sample of the current pack.
     func playTestSound() async {
         await audio.play(keyCode: 0, volume: Float(settings.volume))

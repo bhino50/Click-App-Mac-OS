@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// Opens the welcome window automatically when Accessibility is missing.
+/// Opens the welcome window automatically when Input Monitoring is missing.
 struct OnboardingPresenter: View {
     @Bindable var coordinator: AppCoordinator
     @Environment(\.openWindow) private var openWindow
