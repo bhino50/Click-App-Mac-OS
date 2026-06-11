@@ -1,15 +1,24 @@
 # Click Mac App Store Submission
 
-Status (2026-06-11): build upload path complete. Apple Distribution and
-Mac Installer Distribution certificates created and installed in the login
-keychain. `ClickMAS.provisionprofile` (App Store, brandon.Click, expires
-2027-06-11) generated and saved at the repo root. `build/Click-MAS.pkg`
-built, signed, verified, and uploaded via `altool` with the App Store
-Connect API key `6JCQQ53XK8` (issuer `4c49942c-0cdb-4979-b577-725ac2f014a3`,
-key file `~/.appstoreconnect/private_keys/AuthKey_6JCQQ53XK8.p8`).
-App record "Click Keys" (Apple ID 6779320750) already exists with an
-in-flight macOS version. Remaining: attach the processed build to the
-version, finish trader status / Paid Apps agreement, submit for review.
+Status (2026-06-11 afternoon): metadata complete, build uploaded and
+processing. Apple Distribution and Mac Installer Distribution certificates
+installed; `ClickMAS.provisionprofile` at repo root; `build/Click-MAS.pkg`
+uploaded successfully via `altool` (delivery 1d3bc7d3) using ASC API key
+`6JCQQ53XK8` (issuer `4c49942c-0cdb-4979-b577-725ac2f014a3`, key file
+`~/.appstoreconnect/private_keys/AuthKey_6JCQQ53XK8.p8`). Version 1.0 page
+saved with description, keywords, support URL, copyright, review notes,
+contact info. Pricing set to Free in all 175 regions (no Paid Apps
+agreement needed).
+
+Remaining before "Add for Review":
+1. Screenshots: the original four showed the old Accessibility/updater UI
+   and were deleted from the listing (rejection risk, guideline 2.3.10 and
+   permission mismatch). Retake from the MAS build (Input Monitoring UI,
+   no updater), compose at 1440x900 or 2880x1800, re-upload.
+2. Wait for the uploaded build to finish processing, then select it in the
+   Build section of the version page.
+3. Trader status declaration (Business section) - Brandon, legal.
+4. Click "Add for Review".
 
 ## App Record
 
@@ -17,8 +26,9 @@ version, finish trader status / Paid Apps agreement, submit for review.
 - Bundle ID: `brandon.Click`
 - SKU: `click-macos-1`
 - Name: `Click Keys - Keyboard Sounds`
+- Apple ID: 6779320750
 - Primary category: Utilities
-- Price: USD $0.99 price point
+- Price: Free (USD 0.00 base, all 175 regions, set 2026-06-11)
 - Privacy: Data Not Collected
 
 ## Listing Copy
@@ -50,7 +60,7 @@ keyboard,typing,sounds,mechanical,click,menu bar,sound pack,productivity
 
 Support URL:
 
-https://github.com/bhino50/click
+https://github.com/bhino50/Click-App-Mac-OS
 
 Review notes:
 
