@@ -53,6 +53,7 @@ xcodebuild \
   CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO \
   ENABLE_USER_SELECTED_FILES=readonly \
   INFOPLIST_KEY_LSApplicationCategoryType=public.app-category.utilities \
+  INFOPLIST_KEY_ITSAppUsesNonExemptEncryption=NO \
   CODE_SIGN_IDENTITY="-" \
   build
 
