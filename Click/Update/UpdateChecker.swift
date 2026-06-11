@@ -34,10 +34,10 @@ final class UpdateChecker {
         case failed
     }
 
-    // TODO: Replace with the deployed download site origin once the site
-    // ships. The site serves `version.json` at its root; until then this
-    // host does not resolve and every check fails silently (logged only).
-    static let manifestURLString = "https://click-download-site.invalid/version.json"
+    // Served from the public GitHub repo; release assets host the DMG the
+    // manifest's downloadURL points at.
+    static let manifestURLString =
+        "https://raw.githubusercontent.com/bhino50/Click-App-Mac-OS/main/download-site/version.json"
 
     private static let log = Logger(subsystem: "brandon.Click", category: "updates")
     private static let launchCheckDelay: Duration = .seconds(10)
