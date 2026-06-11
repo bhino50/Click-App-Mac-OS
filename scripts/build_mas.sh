@@ -52,13 +52,22 @@ xcodebuild \
   CODE_SIGN_ENTITLEMENTS="$ENTITLEMENTS" \
   CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO \
   ENABLE_USER_SELECTED_FILES=readonly \
+  INFOPLIST_KEY_LSApplicationCategoryType=public.app-category.utilities \
   CODE_SIGN_IDENTITY="-" \
   build
 
 if [ "$MODE" = "store" ]; then
   echo "==> Embedding provisioning profile and signing for distribution"
   cp "$PROFILE" "$APP/Contents/embedded.provisionprofile"
-  codesign --force --sign "$SIGN_ID" --entitlements "$ENTITLEMENTS" "$APP"
+  # App Store / TestFlight require the application identifier signed into
+  # the bundle, matching the provisioning profile (upload warning 90886).
+  STORE_ENTS="$BUILD_DIR/entitlements-store.plist"
+  cp "$ENTITLEMENTS" "$STORE_ENTS"
+  /usr/libexec/PlistBuddy -c \
+    "Add :com.apple.application-identifier string VJPMCBH6NX.brandon.Click" "$STORE_ENTS"
+  /usr/libexec/PlistBuddy -c \
+    "Add :com.apple.developer.team-identifier string VJPMCBH6NX" "$STORE_ENTS"
+  codesign --force --sign "$SIGN_ID" --entitlements "$STORE_ENTS" "$APP"
   codesign --verify --strict --verbose=2 "$APP"
 fi
 
@@ -91,7 +100,11 @@ fi
 if /usr/libexec/PlistBuddy -c 'Print :NSAccessibilityUsageDescription' "$PLIST" >/dev/null 2>&1; then
   fail "stale Accessibility usage description present"
 fi
-echo "    ok: Info.plist (LSUIElement set, no stale Accessibility string)"
+APP_CATEGORY="$(/usr/libexec/PlistBuddy -c 'Print :LSApplicationCategoryType' "$PLIST" 2>/dev/null || true)"
+if [ -z "$APP_CATEGORY" ]; then
+  fail "LSApplicationCategoryType missing (App Store rejects uploads without a category)"
+fi
+echo "    ok: Info.plist (LSUIElement set, category $APP_CATEGORY, no stale Accessibility string)"
 
 # 4. Universal binary so Intel and Apple Silicon customers are both served.
 ARCHS="$(lipo -archs "$APP/Contents/MacOS/Click")"
