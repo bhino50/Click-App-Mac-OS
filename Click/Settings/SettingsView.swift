@@ -30,7 +30,11 @@ struct SettingsView: View {
     // MARK: Sections
 
     private var header: some View {
-        HStack(alignment: .firstTextBaseline) {
+        HStack(alignment: .center, spacing: 14) {
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 52, height: 52)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Click")
                     .font(.largeTitle).bold()
@@ -151,7 +155,7 @@ struct SettingsView: View {
 
     private var aboutSection: some View {
         SettingsCard(title: "About") {
-            Text("Click v\(Bundle.main.shortVersion) · MIT licensed · Mechvibes-compatible")
+            Text("Click v\(Bundle.main.shortVersion) · Keyboard sound packs for macOS")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
