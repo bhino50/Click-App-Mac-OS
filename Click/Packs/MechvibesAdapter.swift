@@ -78,11 +78,12 @@ enum MechvibesAdapter {
 
     static func load(folder: URL, kind: PackHandle.Kind) throws -> SoundPack {
         let cfg = try decodeConfig(at: folder)
+        var budget = AudioDecodeBudget()
         switch kind {
         case .mechvibesSingle:
-            return try loadSingle(folder: folder, config: cfg)
+            return try loadSingle(folder: folder, config: cfg, budget: &budget)
         case .mechvibesMulti:
-            return try loadMulti(folder: folder, config: cfg)
+            return try loadMulti(folder: folder, config: cfg, budget: &budget)
         case .clickpack:
             throw SoundPackLoadError.manifestInvalid("clickpack passed to mechvibes loader")
         }
@@ -91,18 +92,26 @@ enum MechvibesAdapter {
     // MARK: Private
 
     private static func decodeConfig(at folder: URL) throws -> Config {
-        let url = folder.appendingPathComponent("config.json")
-        guard let data = try? Data(contentsOf: url) else {
-            throw SoundPackLoadError.manifestMissing
-        }
+        let data = try SoundPackLoader.readMetadataFile("config.json", base: folder)
         do {
-            return try JSONDecoder().decode(Config.self, from: data)
+            let config = try JSONDecoder().decode(Config.self, from: data)
+            guard (config.defines?.count ?? 0) <= 1_024 else {
+                throw SoundPackLoadError.resourceLimitExceeded(
+                    "config.json has more than 1,024 key definitions"
+                )
+            }
+            return config
         } catch {
+            if let loadError = error as? SoundPackLoadError { throw loadError }
             throw SoundPackLoadError.manifestInvalid(error.localizedDescription)
         }
     }
 
-    private static func loadMulti(folder: URL, config: Config) throws -> SoundPack {
+    private static func loadMulti(
+        folder: URL,
+        config: Config,
+        budget: inout AudioDecodeBudget
+    ) throws -> SoundPack {
         var samples: [Int64: [AVAudioPCMBuffer]] = [:]
         for (mvCode, value) in config.defines ?? [:] {
             guard case let .file(file) = value,
@@ -111,7 +120,7 @@ enum MechvibesAdapter {
             // Reject path traversal in malicious config.json `defines`.
             guard let url = try? SoundPackLoader.resolveInside(file, base: folder),
                   FileManager.default.fileExists(atPath: url.path) else { continue }
-            let buffer = try SoundPackLoader.decode(url: url)
+            let buffer = try SoundPackLoader.decode(url: url, budget: &budget)
             samples[mac, default: []].append(buffer)
         }
         return SoundPack(name: config.name ?? folder.lastPathComponent,
@@ -121,12 +130,16 @@ enum MechvibesAdapter {
                          defaultSamples: [])
     }
 
-    private static func loadSingle(folder: URL, config: Config) throws -> SoundPack {
+    private static func loadSingle(
+        folder: URL,
+        config: Config,
+        budget: inout AudioDecodeBudget
+    ) throws -> SoundPack {
         guard let soundName = config.sound else {
             throw SoundPackLoadError.manifestInvalid("Single-file pack missing 'sound'")
         }
         let soundURL = try SoundPackLoader.resolveInside(soundName, base: folder)
-        let source = try SoundPackLoader.decode(url: soundURL)
+        let source = try SoundPackLoader.decode(url: soundURL, budget: &budget)
         let sampleRate = source.format.sampleRate
 
         var samples: [Int64: [AVAudioPCMBuffer]] = [:]
@@ -135,10 +148,11 @@ enum MechvibesAdapter {
                   duration > 0,
                   let mv = Int(mvCode),
                   let mac = KeyCodeMap.mechvibesToMac[mv] else { continue }
-            if let slice = slice(buffer: source,
-                                 startMillis: start,
-                                 durationMillis: duration,
-                                 sampleRate: sampleRate) {
+            if let slice = try slice(buffer: source,
+                                     startMillis: start,
+                                     durationMillis: duration,
+                                     sampleRate: sampleRate,
+                                     budget: &budget) {
                 samples[mac, default: []].append(slice)
             }
         }
@@ -155,13 +169,25 @@ enum MechvibesAdapter {
     private static func slice(buffer: AVAudioPCMBuffer,
                               startMillis: Double,
                               durationMillis: Double,
-                              sampleRate: Double) -> AVAudioPCMBuffer? {
-        let startFrame = AVAudioFramePosition(startMillis / 1000.0 * sampleRate)
-        let frameCount = AVAudioFrameCount(durationMillis / 1000.0 * sampleRate)
-        guard frameCount > 0,
-              startFrame >= 0,
-              startFrame + AVAudioFramePosition(frameCount) <= AVAudioFramePosition(buffer.frameLength)
+                              sampleRate: Double,
+                              budget: inout AudioDecodeBudget) throws -> AVAudioPCMBuffer? {
+        guard startMillis.isFinite, durationMillis.isFinite, sampleRate.isFinite,
+              startMillis >= 0, durationMillis > 0, sampleRate > 0 else { return nil }
+        let startFrameValue = startMillis / 1_000.0 * sampleRate
+        let frameCountValue = durationMillis / 1_000.0 * sampleRate
+        guard startFrameValue.isFinite, frameCountValue.isFinite,
+              startFrameValue >= 0, frameCountValue >= 1,
+              frameCountValue <= Double(AVAudioFrameCount.max),
+              startFrameValue + frameCountValue <= Double(buffer.frameLength)
         else { return nil }
+        let startFrame = AVAudioFramePosition(startFrameValue)
+        let frameCount = AVAudioFrameCount(frameCountValue)
+
+        try budget.reserve(
+            frameCount: AVAudioFramePosition(frameCount),
+            format: buffer.format,
+            label: "Mechvibes slice"
+        )
 
         guard let dest = AVAudioPCMBuffer(pcmFormat: buffer.format, frameCapacity: frameCount) else {
             return nil

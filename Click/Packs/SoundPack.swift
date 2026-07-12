@@ -48,6 +48,9 @@ final class SoundPack: @unchecked Sendable {
 
     private let samplesByKeyCode: [Int64: [AVAudioPCMBuffer]]
     private let defaultSamples: [AVAudioPCMBuffer]
+    /// Precomputed once so an unmapped key never flattens every sample bucket
+    /// on the latency-sensitive keystroke path.
+    private let fallbackSamples: [AVAudioPCMBuffer]
 
     init(name: String,
          author: String?,
@@ -59,6 +62,7 @@ final class SoundPack: @unchecked Sendable {
         self.kind = kind
         self.samplesByKeyCode = samplesByKeyCode
         self.defaultSamples = defaultSamples
+        self.fallbackSamples = samplesByKeyCode.values.flatMap { $0 }
     }
 
     /// Returns a sample for the given keycode. Picks at random when more than
@@ -76,7 +80,7 @@ final class SoundPack: @unchecked Sendable {
         // populate `defaultSamples`, so the test-sound button (which uses
         // keyCode 0) would otherwise silently no-op when keyCode 0 isn't in
         // the pack's `defines` map.
-        return samplesByKeyCode.values.flatMap { $0 }.randomElement()
+        return fallbackSamples.randomElement()
     }
 
     var mappedKeyCount: Int { samplesByKeyCode.count }
@@ -95,15 +99,28 @@ final class SoundPack: @unchecked Sendable {
     func converted(to format: AVAudioFormat) -> PackConversionResult {
         var failed = 0
         var total = 0
+        var budget = AudioDecodeBudget()
         var samples: [Int64: [AVAudioPCMBuffer]] = [:]
         for (key, bucket) in samplesByKeyCode {
             total += bucket.count
-            let converted = bucket.compactMap { Self.convertBuffer($0, to: format) }
+            var converted: [AVAudioPCMBuffer] = []
+            converted.reserveCapacity(bucket.count)
+            for buffer in bucket {
+                if let output = Self.convertBuffer(buffer, to: format, budget: &budget) {
+                    converted.append(output)
+                }
+            }
             failed += bucket.count - converted.count
             if !converted.isEmpty { samples[key] = converted }
         }
         total += defaultSamples.count
-        let defaults = defaultSamples.compactMap { Self.convertBuffer($0, to: format) }
+        var defaults: [AVAudioPCMBuffer] = []
+        defaults.reserveCapacity(defaultSamples.count)
+        for buffer in defaultSamples {
+            if let output = Self.convertBuffer(buffer, to: format, budget: &budget) {
+                defaults.append(output)
+            }
+        }
         failed += defaultSamples.count - defaults.count
         let pack = SoundPack(name: name,
                              author: author,
@@ -115,14 +132,34 @@ final class SoundPack: @unchecked Sendable {
                                     totalBufferCount: total)
     }
 
-    static func convertBuffer(_ source: AVAudioPCMBuffer, to format: AVAudioFormat) -> AVAudioPCMBuffer? {
+    static func convertBuffer(
+        _ source: AVAudioPCMBuffer,
+        to format: AVAudioFormat,
+        budget: inout AudioDecodeBudget
+    ) -> AVAudioPCMBuffer? {
         if source.format.isEqual(format) { return source }
         guard let converter = AVAudioConverter(from: source.format, to: format) else {
             return nil
         }
         // Estimate destination frame count from the sample rate ratio.
+        guard source.format.sampleRate.isFinite, source.format.sampleRate > 0,
+              format.sampleRate.isFinite, format.sampleRate > 0 else {
+            return nil
+        }
         let ratio = format.sampleRate / source.format.sampleRate
-        let estimatedFrames = AVAudioFrameCount(Double(source.frameLength) * ratio) + 1024
+        let estimatedValue = Double(source.frameLength) * ratio
+        guard estimatedValue.isFinite, estimatedValue >= 1,
+              estimatedValue <= Double(AVAudioFrameCount.max - 1_024) else {
+            return nil
+        }
+        let estimatedFrames = AVAudioFrameCount(estimatedValue.rounded(.up)) + 1_024
+        guard (try? budget.reserve(
+            frameCount: AVAudioFramePosition(estimatedFrames),
+            format: format,
+            label: "converted audio"
+        )) != nil else {
+            return nil
+        }
         guard let dest = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: estimatedFrames) else {
             return nil
         }
