@@ -64,14 +64,23 @@ struct SettingsView: View {
 
     private var masterSection: some View {
         SettingsCard(title: "Sound") {
-            Toggle("Play sounds while typing", isOn: $coordinator.settings.isEnabled)
+            Toggle("Play sounds while typing", isOn: enabledBinding)
                 .toggleStyle(.switch)
             VStack(alignment: .leading, spacing: 4) {
                 Text("Volume")
                 Slider(value: $coordinator.settings.volume, in: 0...1)
                     .controlSize(.large)
+                    .accessibilityLabel("Volume")
+                    .accessibilityValue("\(Int(coordinator.settings.volume * 100)) percent")
             }
         }
+    }
+
+    private var enabledBinding: Binding<Bool> {
+        Binding(
+            get: { coordinator.settings.isEnabled },
+            set: { enabled in Task { await coordinator.setEnabled(enabled) } }
+        )
     }
 
     private var packSection: some View {
@@ -146,6 +155,8 @@ struct SettingsView: View {
             ))
             .font(.system(.callout, design: .monospaced))
             .frame(minHeight: 80)
+            .accessibilityLabel("Muted app bundle identifiers")
+            .accessibilityHint("Enter one bundle identifier per line")
             .overlay(
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
                     .strokeBorder(.secondary.opacity(0.3))

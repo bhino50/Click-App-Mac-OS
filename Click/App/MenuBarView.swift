@@ -35,11 +35,19 @@ struct MenuBarView: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Toggle("", isOn: $coordinator.settings.isEnabled)
+            Toggle("Play typing sounds", isOn: enabledBinding)
                 .labelsHidden()
                 .toggleStyle(.switch)
                 .controlSize(.small)
+                .accessibilityValue(coordinator.settings.isEnabled ? "On" : "Off")
         }
+    }
+
+    private var enabledBinding: Binding<Bool> {
+        Binding(
+            get: { coordinator.settings.isEnabled },
+            set: { enabled in Task { await coordinator.setEnabled(enabled) } }
+        )
     }
 
     private var statusText: String {
@@ -57,6 +65,8 @@ struct MenuBarView: View {
             HStack(spacing: 6) {
                 Image(systemName: "speaker.fill").font(.caption2).foregroundStyle(.secondary)
                 Slider(value: $coordinator.settings.volume, in: 0...1)
+                    .accessibilityLabel("Volume")
+                    .accessibilityValue("\(Int(coordinator.settings.volume * 100)) percent")
                 Image(systemName: "speaker.wave.3.fill").font(.caption2).foregroundStyle(.secondary)
                 Text("\(Int(coordinator.settings.volume * 100))%")
                     .font(.caption.monospacedDigit())
@@ -83,7 +93,7 @@ struct MenuBarView: View {
         } else {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Sound pack").font(.caption).foregroundStyle(.secondary)
-                Picker("", selection: Binding(
+                Picker("Sound pack", selection: Binding(
                     get: { coordinator.currentPack?.name ?? coordinator.availablePacks.first?.name ?? "" },
                     set: { name in
                         Task { await coordinator.selectPack(named: name) }

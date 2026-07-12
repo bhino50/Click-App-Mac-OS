@@ -56,7 +56,7 @@ final class SettingsStore {
         self.velocitySensitive = defaults.object(forKey: Keys.velocitySensitive) as? Bool ?? true
         self.visualFeedback = defaults.bool(forKey: Keys.visualFeedback)
         self.mutedBundleIDs = defaults.stringArray(forKey: Keys.mutedBundleIDs) ?? []
-        Logger(subsystem: "brandon.Click", category: "settings").notice("SettingsStore init: selectedPackName=\(self.selectedPackName ?? "<nil>", privacy: .public)")
+        Logger(subsystem: "brandon.Click", category: "settings").notice("SettingsStore initialized")
     }
 
     /// Returns `true` if the frontmost app is allowed to make Click play sounds.

@@ -15,9 +15,18 @@ actor AudioEngine {
     private var rawPack: SoundPack?
     private var processingFormat: AVAudioFormat?
     private var didRegisterConfigObserver = false
+    private var shouldBeRunning = false
 
     /// Boots the engine. Idempotent.
     func start() {
+        shouldBeRunning = true
+        startEngineIfNeeded()
+        if pack == nil, let rawPack, let error = installPack(rawPack) {
+            Self.log.error("reinstall while starting failed: \(error, privacy: .public)")
+        }
+    }
+
+    private func startEngineIfNeeded() {
         registerConfigObserverIfNeeded()
         guard !engine.isRunning else { return }
         let format = engine.mainMixerNode.outputFormat(forBus: 0)
@@ -66,16 +75,20 @@ actor AudioEngine {
         let savedRaw = rawPack
         pack = nil
         processingFormat = nil
-        start()
+        guard shouldBeRunning else { return }
+        startEngineIfNeeded()
         if let savedRaw, let installError = installPack(savedRaw) {
             Self.log.error("reinstall after config change failed: \(installError, privacy: .public)")
         }
     }
 
     func stop() {
+        shouldBeRunning = false
         pool?.stopAll()
         engine.stop()
     }
+
+    var isRunning: Bool { engine.isRunning && shouldBeRunning }
 
     /// `AVAudioFormat.isEqual` also compares channel layouts, which
     /// `AVAudioConverter` may legitimately not preserve (nil-layout vs.
@@ -94,29 +107,29 @@ actor AudioEngine {
     /// success. Partial conversion failures are tolerated and logged.
     func installPack(_ pack: SoundPack) -> String? {
         // Make sure the engine is running so we have a valid processing format.
-        if processingFormat == nil { start() }
+        if processingFormat == nil { startEngineIfNeeded() }
         guard let format = processingFormat else {
             // Don't store the un-converted pack — scheduleBuffer would throw an
             // Obj-C exception on the first keypress. Leave the previous pack in
             // place and surface the failure.
-            Self.log.error("installPack: no processing format available — pack \(pack.name, privacy: .public) not installed")
+            Self.log.error("installPack: no processing format available — pack \(pack.name, privacy: .private) not installed")
             return "The audio engine is not running, so the pack could not be installed."
         }
         let result = pack.converted(to: format)
         guard result.totalBufferCount > 0 else {
-            Self.log.error("installPack: pack \(pack.name, privacy: .public) contains no samples — not installed")
+            Self.log.error("installPack: pack \(pack.name, privacy: .private) contains no samples — not installed")
             return "The pack contains no playable sounds."
         }
         if result.allBuffersFailed {
-            Self.log.error("installPack: all \(result.totalBufferCount) buffers failed to convert for \(pack.name, privacy: .public) — keeping previous pack")
+            Self.log.error("installPack: all \(result.totalBufferCount) buffers failed to convert for \(pack.name, privacy: .private) — keeping previous pack")
             return "None of the pack's sounds could be converted for playback. The previous pack is still active."
         }
         if result.failedBufferCount > 0 {
-            Self.log.warning("installPack: \(result.failedBufferCount)/\(result.totalBufferCount) buffers failed to convert for \(pack.name, privacy: .public)")
+            Self.log.warning("installPack: \(result.failedBufferCount)/\(result.totalBufferCount) buffers failed to convert for \(pack.name, privacy: .private)")
         }
         rawPack = pack
         self.pack = result.pack
-        Self.log.notice("Installed pack \(pack.name, privacy: .public) — converted to \(format.sampleRate)Hz \(format.channelCount)ch")
+        Self.log.notice("Installed pack \(pack.name, privacy: .private) — converted to \(format.sampleRate)Hz \(format.channelCount)ch")
         return nil
     }
 
@@ -125,6 +138,7 @@ actor AudioEngine {
     /// Volume is clamped to `[0, 1]`.
     func play(keyCode: Int64, volume: Float) {
         if !engine.isRunning {
+            guard shouldBeRunning else { return }
             // Most likely a configuration change is in flight and the engine
             // was just stopped. Attempt a lazy rebuild rather than no-op'ing.
             handleConfigurationChange()
@@ -138,7 +152,9 @@ actor AudioEngine {
             return
         }
         guard let buffer = pack.sample(for: keyCode) else {
-            Self.log.error("play: no sample for keyCode=\(keyCode, privacy: .public)")
+            // Never write keystroke-derived key codes to unified logging. The
+            // event is intentionally described without any input data.
+            Self.log.error("play: selected pack has no playable sample for an input event")
             return
         }
         guard let node = pool?.next() else {

@@ -30,7 +30,7 @@ actor PackFolderWatcher {
         try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         let fd = open(url.path, O_EVTONLY)
         guard fd >= 0 else {
-            Self.log.error("watcher open() failed for \(self.url.path, privacy: .public)")
+            Self.log.error("watcher open() failed for \(self.url.path, privacy: .private)")
             return
         }
         fileDescriptor = fd

@@ -50,9 +50,10 @@ final class AppCoordinator {
     private var wakeObserver: NSObjectProtocol?
     private var lastKeystrokeMach: UInt64 = 0
     private var didBootstrap = false
+    private var lifecycleGeneration = 0
 
-    init() {
-        self.settings = SettingsStore()
+    init(settings: SettingsStore? = nil) {
+        self.settings = settings ?? SettingsStore()
         self.permissions = PermissionsManager()
         self.packLoader = SoundPackLoader()
         self.audio = AudioEngine()
@@ -78,7 +79,11 @@ final class AppCoordinator {
         #if !MAS_BUILD
         updateChecker.scheduleLaunchCheck()
         #endif
-        await ensurePermissionsAndStartTap()
+        if settings.isEnabled {
+            await ensurePermissionsAndStartTap()
+        } else {
+            await audio.stop()
+        }
     }
 
     /// SF Symbol for the menu bar icon. Switches to a warning when the event
@@ -89,11 +94,17 @@ final class AppCoordinator {
         return settings.isEnabled ? "keyboard.fill" : "keyboard"
     }
 
+    var menuBarAccessibilityStatus: String {
+        if inputMonitoringLost { return "Input Monitoring access lost" }
+        if loadError != nil { return "Sound pack needs attention" }
+        return settings.isEnabled ? "Typing sounds on" : "Typing sounds off"
+    }
+
     // MARK: Pack management
 
     func refreshPacks() async {
         availablePacks = await packLoader.discover()
-        Self.log.notice("Discovered \(self.availablePacks.count, privacy: .public) packs: \(self.availablePacks.map(\.name).joined(separator: ", "), privacy: .public)")
+        Self.log.notice("Discovered \(self.availablePacks.count, privacy: .public) sound packs")
     }
 
     @discardableResult
@@ -109,9 +120,13 @@ final class AppCoordinator {
     func selectPack(handle: PackHandle) async -> Bool {
         do {
             let pack = try await packLoader.load(handle: handle)
-            if let installError = await audio.installPack(pack) {
+            let installError = await audio.installPack(pack)
+            if !settings.isEnabled {
+                await audio.stop()
+            }
+            if let installError {
                 loadError = "\(handle.name): \(installError)"
-                Self.log.error("Pack install failed for \(handle.name, privacy: .public): \(installError, privacy: .public)")
+                Self.log.error("Pack install failed for \(handle.name, privacy: .private): \(installError, privacy: .private)")
                 return false
             }
             currentPack = pack
@@ -119,8 +134,9 @@ final class AppCoordinator {
             loadError = nil
             return true
         } catch {
+            if !settings.isEnabled { await audio.stop() }
             loadError = "\(handle.name): \(error.localizedDescription)"
-            Self.log.error("Pack load failed for \(handle.name, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            Self.log.error("Pack load failed for \(handle.name, privacy: .private): \(error.localizedDescription, privacy: .private)")
             return false
         }
     }
@@ -148,7 +164,7 @@ final class AppCoordinator {
                 try await packLoader.importPack(at: url)
             } catch {
                 failures.append("\(url.lastPathComponent): \(error.localizedDescription)")
-                Self.log.error("Pack import failed for \(url.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
+                Self.log.error("Pack import failed for \(url.lastPathComponent, privacy: .private): \(error.localizedDescription, privacy: .private)")
             }
         }
         await refreshPacks()
@@ -171,6 +187,10 @@ final class AppCoordinator {
     // MARK: Permissions / event tap
 
     func ensurePermissionsAndStartTap() async {
+        guard settings.isEnabled else {
+            stopInputLifecycle()
+            return
+        }
         permissions.refresh()
         if permissions.isTrusted {
             needsOnboarding = false
@@ -187,12 +207,17 @@ final class AppCoordinator {
     }
 
     private func startPermissionsPolling() {
+        guard settings.isEnabled else { return }
         permissionsPollTask?.cancel()
         Self.log.notice("Started permissions polling (current trust=\(self.permissions.isTrusted, privacy: .public))")
         permissionsPollTask = Task { @MainActor [weak self] in
             var ticks = 0
             while let self, !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
+                guard self.settings.isEnabled else {
+                    self.permissionsPollTask = nil
+                    return
+                }
                 let wasTrusted = self.permissions.isTrusted
                 self.permissions.refresh()
                 ticks += 1
@@ -210,6 +235,7 @@ final class AppCoordinator {
     }
 
     func startEventTap() async {
+        guard settings.isEnabled else { return }
         guard eventTap == nil else { return }
         let tap = KeyEventTap()
         let stream = tap.events()
@@ -234,6 +260,7 @@ final class AppCoordinator {
     /// all without notifying the app — without this check Click would keep
     /// running silently.
     private func startTapHealthChecks() {
+        guard settings.isEnabled else { return }
         guard tapHealthTask == nil else { return }
         tapHealthTask = Task { @MainActor [weak self] in
             while let self, !Task.isCancelled {
@@ -261,6 +288,10 @@ final class AppCoordinator {
     /// reinstalling the tap when possible and flagging `inputMonitoringLost`
     /// (menu bar warning) when it is not.
     func verifyTapHealth(reason: String) async {
+        guard settings.isEnabled else {
+            stopInputLifecycle()
+            return
+        }
         permissions.refresh()
         guard permissions.isTrusted else {
             if !inputMonitoringLost {
@@ -299,8 +330,43 @@ final class AppCoordinator {
     }
 
     func toggleEnabled() {
-        settings.isEnabled.toggle()
+        let enabled = !settings.isEnabled
+        Task { await setEnabled(enabled) }
     }
+
+    /// Applies the master state to the entire capture/playback lifecycle. Off
+    /// means no event tap, watchdog, permission polling, or running audio
+    /// engine—not merely dropping events after observing them.
+    func setEnabled(_ enabled: Bool) async {
+        lifecycleGeneration += 1
+        let generation = lifecycleGeneration
+        settings.isEnabled = enabled
+        lastKeystrokeMach = 0
+
+        guard enabled else {
+            needsOnboarding = false
+            inputMonitoringLost = false
+            stopInputLifecycle()
+            await audio.stop()
+            return
+        }
+
+        await audio.start()
+        guard generation == lifecycleGeneration, settings.isEnabled else { return }
+        await ensurePermissionsAndStartTap()
+    }
+
+    private func stopInputLifecycle() {
+        permissionsPollTask?.cancel()
+        permissionsPollTask = nil
+        tapHealthTask?.cancel()
+        tapHealthTask = nil
+        stopEventTap()
+    }
+
+    var isInputCaptureActive: Bool { eventTap != nil }
+    var isPermissionPolling: Bool { permissionsPollTask != nil }
+    var isTapHealthMonitoring: Bool { tapHealthTask != nil }
 
     func openWelcomeGuide() {
         shouldShowWelcomeGuide = true
@@ -310,7 +376,13 @@ final class AppCoordinator {
     /// global event tap is granted Input Monitoring permission. Uses the default
     /// sample of the current pack.
     func playTestSound() async {
+        let shouldStopAfterPlayback = !settings.isEnabled
+        if shouldStopAfterPlayback { await audio.start() }
         await audio.play(keyCode: 0, volume: Float(settings.volume))
+        if shouldStopAfterPlayback {
+            try? await Task.sleep(for: .seconds(1))
+            if !settings.isEnabled { await audio.stop() }
+        }
     }
 
     // MARK: Keystroke handling
@@ -320,8 +392,10 @@ final class AppCoordinator {
         let frontBundle = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
         guard settings.allowedAppPolicyMatches(frontmostBundleID: frontBundle) else { return }
         let velocity = velocityScalar(for: event)
-        lastPressedKey = event.keyCode
-        lastPressAt = Date()
+        if settings.visualFeedback {
+            lastPressedKey = event.keyCode
+            lastPressAt = Date()
+        }
         let volume = Float(settings.volume) * velocity
         Task { [audio] in
             await audio.play(keyCode: event.keyCode, volume: volume)

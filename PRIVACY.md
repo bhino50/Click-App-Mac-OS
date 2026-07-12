@@ -14,8 +14,10 @@ analytics, no advertising, no tracking, and no account system.
 
 Click requests the macOS Input Monitoring permission solely to detect
 key-down events so it can play a sound for each keystroke. The event tap is
-listen-only. Click never records which keys are pressed, never stores
-keystrokes, and never transmits keystroke information anywhere. All
+listen-only and is removed whenever the master sound switch is off. Click never
+persists keystrokes to disk or system logs and never transmits keystroke
+information anywhere. If you opt into the pressed-key overlay, the latest key
+code is held briefly in memory only long enough to draw that overlay. All
 processing happens locally on your Mac and nothing leaves the app's process.
 
 ## Network access
@@ -26,8 +28,9 @@ updates; this request contains no personal information.
 
 ## Files
 
-If you import a sound pack, Click copies the files you select into its own
-app container. It does not access any other files.
+If you import a sound pack, Click copies the folder you select into Click's
+Application Support folder (or its sandbox container in the Mac App Store
+version). It does not browse or copy files you did not select.
 
 ## Contact
 
