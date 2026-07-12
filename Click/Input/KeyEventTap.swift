@@ -2,6 +2,18 @@ import CoreGraphics
 import Foundation
 import os
 
+/// Interface the coordinator drives the event tap through. Lets tests
+/// substitute a tap that fails or succeeds on demand without needing real
+/// Input Monitoring access.
+@MainActor
+protocol KeyEventTapProviding: AnyObject {
+    var isHealthy: Bool { get }
+    func events() -> AsyncStream<KeyEvent>
+    @discardableResult
+    func start() -> Bool
+    func stop()
+}
+
 /// Owns a `CGEventTap` listening for global key-down events. Pass-through only;
 /// it never consumes or modifies the user's keystrokes.
 ///
@@ -141,3 +153,5 @@ extension KeyEventTap {
         }
     }
 }
+
+extension KeyEventTap: KeyEventTapProviding {}

@@ -149,6 +149,67 @@ final class AudioConversionLimitTests: XCTestCase {
     }
 }
 
+final class EventTapLaunchFailureTests: XCTestCase {
+    @MainActor
+    private final class ScriptedTap: KeyEventTapProviding {
+        private let startResult: Bool
+
+        init(startResult: Bool) {
+            self.startResult = startResult
+        }
+
+        var isHealthy: Bool { startResult }
+
+        func events() -> AsyncStream<KeyEvent> {
+            AsyncStream { $0.finish() }
+        }
+
+        @discardableResult
+        func start() -> Bool { startResult }
+
+        func stop() {}
+    }
+
+    @MainActor
+    func testStartFailureShowsWarningAndKeepsWatchdogRunning() async {
+        let suiteName = "ClickTests.EventTapLaunchFailure.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = SettingsStore(defaults: defaults)
+        settings.isEnabled = true
+        let coordinator = AppCoordinator(settings: settings)
+        coordinator.makeEventTap = { ScriptedTap(startResult: false) }
+
+        await coordinator.startEventTap()
+
+        XCTAssertFalse(coordinator.isInputCaptureActive)
+        XCTAssertTrue(coordinator.inputMonitoringLost)
+        XCTAssertTrue(coordinator.isTapHealthMonitoring)
+        XCTAssertEqual(coordinator.menuBarIconName, "exclamationmark.triangle.fill")
+    }
+
+    @MainActor
+    func testSuccessfulRetryClearsWarning() async {
+        let suiteName = "ClickTests.EventTapLaunchFailure.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let settings = SettingsStore(defaults: defaults)
+        settings.isEnabled = true
+        let coordinator = AppCoordinator(settings: settings)
+        coordinator.makeEventTap = { ScriptedTap(startResult: false) }
+
+        await coordinator.startEventTap()
+        XCTAssertTrue(coordinator.inputMonitoringLost)
+
+        coordinator.makeEventTap = { ScriptedTap(startResult: true) }
+        await coordinator.startEventTap()
+
+        XCTAssertTrue(coordinator.isInputCaptureActive)
+        XCTAssertFalse(coordinator.inputMonitoringLost)
+        XCTAssertEqual(coordinator.menuBarIconName, "keyboard.fill")
+    }
+}
+
 final class MasterLifecycleTests: XCTestCase {
     @MainActor
     func testTurningOffStopsCaptureMonitoringAndAudio() async {

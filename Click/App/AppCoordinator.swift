@@ -42,7 +42,12 @@ final class AppCoordinator {
 
     private static let tapHealthInterval: Duration = .seconds(30)
 
-    private var eventTap: KeyEventTap?
+    /// Factory for the event tap; tests inject taps that fail or succeed on
+    /// demand, since a real tap needs Input Monitoring access.
+    @ObservationIgnored
+    var makeEventTap: @MainActor () -> any KeyEventTapProviding = { KeyEventTap() }
+
+    private var eventTap: (any KeyEventTapProviding)?
     private var eventConsumeTask: Task<Void, Never>?
     private var permissionsPollTask: Task<Void, Never>?
     private var folderWatchTask: Task<Void, Never>?
@@ -237,10 +242,16 @@ final class AppCoordinator {
     func startEventTap() async {
         guard settings.isEnabled else { return }
         guard eventTap == nil else { return }
-        let tap = KeyEventTap()
+        let tap = makeEventTap()
         let stream = tap.events()
         guard tap.start() else {
             Self.log.error("Failed to start event tap (Input Monitoring trusted=\(self.permissions.isTrusted, privacy: .public))")
+            // TCC can report trusted while tap creation still fails (e.g. a
+            // stale grant after the binary changed). Show the menu bar warning
+            // and keep the watchdog retrying instead of dying silently until
+            // the next sleep/wake.
+            inputMonitoringLost = true
+            startTapHealthChecks()
             return
         }
         Self.log.notice("Event tap installed; trust=\(self.permissions.isTrusted, privacy: .public)")
