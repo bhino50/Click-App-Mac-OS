@@ -45,11 +45,14 @@ wild doesn't load, please open an issue with the `config.json` attached
 
 ## Releasing
 
-1. Bump `MARKETING_VERSION` in the Xcode build settings.
-2. Build → archive → notarize with `notarytool`.
+1. Bump `MARKETING_VERSION` in every Click target configuration.
+2. Run `scripts/release.sh` with both `DEVELOPER_ID` and `NOTARY_PROFILE`.
+   It delegates to the canonical packager, derives the artifact version from
+   `MARKETING_VERSION`, notarizes and validates the DMG itself, and updates the
+   public manifest only after Gatekeeper accepts it.
 3. Tag the release: `git tag v$VERSION && git push --tags`.
 4. Attach the signed `.dmg` to the GitHub release.
 5. Update the Homebrew cask formula.
 
-The signing/notarization scripts live under `scripts/release.sh` (see the
-file for the full recipe).
+For a clearly labeled local-only artifact, use `scripts/package_release.sh`
+without credentials. See both scripts for the exact release gates.

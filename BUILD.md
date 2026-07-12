@@ -15,7 +15,7 @@ An open-source, MIT-licensed macOS app that plays mechanical keyboard sounds as 
 - **Audio:** `AVAudioEngine` + 16-node `AVAudioPlayerNode` pool; `AVAudioConverter` normalizes every pack to the engine's processing format at install time
 - **Input:** `CGEvent.tapCreate(.cgSessionEventTap, .listenOnly)` on the main runloop, surfaced as `AsyncStream<KeyEvent>`
 - **Sandbox:** **off** — `com.apple.security.app-sandbox=false`. Required by `CGEventTap`. Hardened runtime stays on.
-- **Distribution:** Ad-hoc signed for local builds today; `scripts/release.sh` drives Developer ID signing + `notarytool` + DMG for public releases.
+- **Distribution:** `scripts/package_release.sh` creates clearly labeled local artifacts by default; `scripts/release.sh` requires explicit Developer ID and notary credentials and delegates to that canonical packager for public releases.
 - **License:** MIT.
 
 ## What ships in the bundle
@@ -188,7 +188,7 @@ Two surfaces:
 
 - [x] Repo layout finalized: `LICENSE`, `README.md`, `CONTRIBUTING.md`, `BUILD.md` (this file)
 - [x] 8 bundled packs (6 Mechvibes-derived + 2 procedural) — all original or community-licensed; no scraped IP
-- [x] `scripts/release.sh` runs `xcodebuild archive` → `xcodebuild -exportArchive` → `codesign --verify` → `hdiutil create -format UDZO` → `xcrun notarytool submit --keychain-profile AC_NOTARY --wait` → `xcrun stapler staple`
+- [x] `scripts/release.sh` delegates to the fail-closed package pipeline: build/sign/notarize/staple/assess app → build/sign/notarize/staple/assess DMG → promote public filenames/update manifest
 - [ ] **Pending the user**: install Developer ID cert + `xcrun notarytool store-credentials AC_NOTARY ...`, then run `./scripts/release.sh`
 - [ ] **Pending the user**: cut a public GitHub release with the notarized `.dmg`
 - [ ] **Pending the user**: publish a Homebrew Cask formula pointing at that release
@@ -248,7 +248,8 @@ Click/                                              # repo root
 │   ├── generate_packs.py                           # procedural modal synthesis
 │   └── prepare_packs.py                            # download + transcode Mechvibes packs
 ├── scripts/
-│   └── release.sh                                  # sign + notarize + DMG
+│   ├── package_release.sh                          # canonical local/public packager
+│   └── release.sh                                  # strict public-release wrapper
 └── build/                                          # gitignored
     ├── DerivedData/                                # Xcode build products
     ├── pack-downloads/                             # zip cache for prepare_packs.py
@@ -286,8 +287,10 @@ python3 tools/generate_packs.py
 # Refresh the bundled Mechvibes packs from downloads in build/pack-downloads/
 python3 tools/prepare_packs.py
 
-# Full notarized release pipeline (needs Developer ID + AC_NOTARY profile)
-./scripts/release.sh
+# Full notarized release pipeline (needs Developer ID + notary profile)
+DEVELOPER_ID="Developer ID Application: Your Name (TEAMID)" \
+NOTARY_PROFILE="AC_NOTARY" \
+  ./scripts/release.sh
 ```
 
 ---

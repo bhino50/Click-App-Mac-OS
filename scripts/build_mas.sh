@@ -68,8 +68,12 @@ if [ "$MODE" = "store" ]; then
     "Add :com.apple.application-identifier string VJPMCBH6NX.brandon.Click" "$STORE_ENTS"
   /usr/libexec/PlistBuddy -c \
     "Add :com.apple.developer.team-identifier string VJPMCBH6NX" "$STORE_ENTS"
-  codesign --force --sign "$SIGN_ID" --entitlements "$STORE_ENTS" "$APP"
+  codesign --force --options runtime --sign "$SIGN_ID" --entitlements "$STORE_ENTS" "$APP"
   codesign --verify --strict --verbose=2 "$APP"
+  if ! codesign -dvv "$APP" 2>&1 | grep -Eq 'flags=.*runtime'; then
+    fail "distribution re-sign stripped the hardened runtime flag"
+  fi
+  echo "    ok: distribution signature preserves hardened runtime"
 fi
 
 echo "==> Verifying the build is App Store ready"

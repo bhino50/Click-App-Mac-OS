@@ -94,7 +94,7 @@ resubmit.
 ## Gotchas
 
 - Do NOT remove the Developer ID pipeline — keep both channels
-  (package_release.sh stays as-is for direct downloads).
+  (`package_release.sh` remains the canonical direct-download packager).
 - The MAS build must not contain the updater or any "download" links to
   the website version (rejection risk: guideline 2.3.10 / 3.1.x).
 - LSUIElement menu bar apps are fine on MAS, but onboarding must make the

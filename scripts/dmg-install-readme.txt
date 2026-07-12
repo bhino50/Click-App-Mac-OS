@@ -4,8 +4,11 @@ Click — Install & First Launch
 1. Drag Click.app into the Applications folder.
 
 2. FIRST OPEN (macOS Gatekeeper)
-   Click is open source and not Apple-notarized yet, so macOS blocks the
-   first launch. This is expected — not a virus warning.
+   The public Click-<version>.dmg is signed with an Apple Developer ID and
+   notarized by Apple, so it should open normally.
+
+   Development artifacts whose filenames include NOT-FOR-PUBLIC-RELEASE are
+   not notarized. They are for local testing only and macOS may block them:
 
    macOS 13–14 (Ventura / Sonoma):
      • Right-click (or Control-click) Click in Applications
@@ -30,4 +33,4 @@ Click — Install & First Launch
    icon near the clock. Use “Test sound” to verify audio before granting
    Accessibility.
 
-Need help? https://github.com/bhino50/click
+Need help? https://github.com/bhino50/Click-App-Mac-OS

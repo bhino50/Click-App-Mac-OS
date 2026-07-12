@@ -1,86 +1,37 @@
 #!/usr/bin/env bash
 #
-# Build, sign, notarize, and package Click for distribution.
-#
-# Prerequisites (one-time per machine):
-#   - Apple Developer ID Application certificate installed in your login keychain.
-#   - `xcrun notarytool store-credentials "AC_NOTARY"
-#       --apple-id "<your Apple ID>"
-#       --team-id "<TEAMID>"
-#       --password "<app-specific password>"`
+# Strict public-release entry point for Click.
 #
 # Usage:
-#   ./scripts/release.sh                              # uses default identity
-#   DEV_ID="Developer ID Application: Name (TEAMID)"  # override
-#       ./scripts/release.sh
+#   DEVELOPER_ID="Developer ID Application: Name (TEAMID)" \
+#   NOTARY_PROFILE="AC_NOTARY" \
+#     ./scripts/release.sh
 #
-# Output:
-#   build/Click.app                  notarized + stapled
-#   build/Click.dmg                  notarized + stapled
-#
+# DEV_ID remains a supported legacy alias for DEVELOPER_ID. Credentials are
+# never defaulted: a public release must be an explicit, fully configured act.
 set -euo pipefail
 
-cd "$(dirname "$0")/.."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-DEV_ID="${DEV_ID:-Developer ID Application}"
-NOTARY_PROFILE="${NOTARY_PROFILE:-AC_NOTARY}"
-BUILD_DIR="build"
-ARCHIVE="$BUILD_DIR/Click.xcarchive"
-EXPORT_DIR="$BUILD_DIR/export"
-APP="$EXPORT_DIR/Click.app"
-DMG="$BUILD_DIR/Click.dmg"
+if (( $# != 0 )); then
+  echo "release.sh does not accept arguments; configure release credentials through the environment." >&2
+  exit 2
+fi
 
-rm -rf "$BUILD_DIR"
-mkdir -p "$BUILD_DIR"
+if [[ -n "${DEV_ID:-}" ]]; then
+  if [[ -n "${DEVELOPER_ID:-}" && "$DEV_ID" != "$DEVELOPER_ID" ]]; then
+    echo "DEV_ID and DEVELOPER_ID disagree; refusing to choose a signing identity." >&2
+    exit 2
+  fi
+  export DEVELOPER_ID="$DEV_ID"
+fi
 
-echo "==> Archiving"
-xcodebuild \
-  -project Click.xcodeproj \
-  -scheme Click \
-  -configuration Release \
-  -destination 'generic/platform=macOS' \
-  -archivePath "$ARCHIVE" \
-  archive
+if [[ -z "${DEVELOPER_ID:-}" || -z "${NOTARY_PROFILE:-}" ]]; then
+  echo "A public Click release requires both DEVELOPER_ID and NOTARY_PROFILE." >&2
+  echo "For a clearly labeled local-only artifact, run ./scripts/package_release.sh instead." >&2
+  exit 2
+fi
 
-cat > "$BUILD_DIR/exportOptions.plist" <<EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>method</key><string>developer-id</string>
-  <key>signingStyle</key><string>automatic</string>
-  <key>destination</key><string>export</string>
-</dict>
-</plist>
-EOF
-
-echo "==> Exporting signed .app"
-xcodebuild -exportArchive \
-  -archivePath "$ARCHIVE" \
-  -exportPath "$EXPORT_DIR" \
-  -exportOptionsPlist "$BUILD_DIR/exportOptions.plist"
-
-echo "==> Verifying signature"
-codesign --verify --deep --strict --verbose=2 "$APP"
-spctl --assess --type execute --verbose=4 "$APP" || true
-
-echo "==> Building DMG"
-TMP_DMG_DIR="$(mktemp -d)"
-cp -R "$APP" "$TMP_DMG_DIR/Click.app"
-ln -s /Applications "$TMP_DMG_DIR/Applications"
-hdiutil create -volname Click -srcfolder "$TMP_DMG_DIR" -ov -format UDZO "$DMG"
-rm -rf "$TMP_DMG_DIR"
-
-echo "==> Signing DMG"
-codesign --sign "$DEV_ID" --timestamp "$DMG"
-
-echo "==> Notarizing DMG"
-xcrun notarytool submit "$DMG" --keychain-profile "$NOTARY_PROFILE" --wait
-
-echo "==> Stapling"
-xcrun stapler staple "$DMG"
-xcrun stapler staple "$APP"
-
-echo "==> Done."
-echo "    Notarized app: $APP"
-echo "    Notarized DMG: $DMG"
+# Keep one release implementation so signing, DMG notarization, Gatekeeper,
+# artifact naming, and manifest rules cannot diverge between entry points.
+exec "$SCRIPT_DIR/package_release.sh"

@@ -18,9 +18,11 @@ Mechvibes-compatible sound packs, low-latency playback, MIT licensed.
 
 ### Download (recommended)
 
-Download the latest `.dmg` from [Releases](https://github.com/bhino50/click/releases), open it, and drag `Click.app` to `/Applications`. The DMG includes **Install First — Read Me.txt** with step-by-step first-launch instructions.
+Download the latest `.dmg` from [Releases](https://github.com/bhino50/Click-App-Mac-OS/releases), open it, and drag `Click.app` to `/Applications`. The DMG includes **Install First — Read Me.txt** with step-by-step first-launch instructions.
 
-Click is open source and **ad-hoc signed, not Apple-notarized** yet. macOS Gatekeeper blocks the very first launch — this is expected:
+The public DMG is Developer ID signed and Apple-notarized, so it should open
+normally. Local development artifacts are explicitly named
+`NOT-FOR-PUBLIC-RELEASE`; macOS may block those test copies:
 
 - **macOS 13–14:** right-click `Click.app` → **Open**, then confirm **Open**
 - **macOS 15+:** double-click once (blocked), then **System Settings → Privacy & Security → Open Anyway**
@@ -32,19 +34,31 @@ After launch, a welcome window walks you through **Accessibility** access (requi
 Requires Xcode 16+ and macOS 14+.
 
 ```bash
-git clone https://github.com/bhino50/click.git
-cd click
+git clone https://github.com/bhino50/Click-App-Mac-OS.git
+cd Click-App-Mac-OS
 open Click.xcodeproj
 # ⌘B to build, ⌘R to run.
 ```
 
-### Package a release DMG (no Developer ID)
+### Package a local-only DMG (no Developer ID)
 
 ```bash
 ./scripts/package_release.sh
 ```
 
-Set `DEVELOPER_ID` and `NOTARY_PROFILE` when you have an Apple Developer account.
+The local artifact is unmistakably named `ADHOC-LOCAL-ONLY-NOT-FOR-PUBLIC-RELEASE`
+and does not change the public update manifest. For a public release, use the
+strict entry point with both credentials explicitly set:
+
+```bash
+DEVELOPER_ID="Developer ID Application: Your Name (TEAMID)" \
+NOTARY_PROFILE="AC_NOTARY" \
+./scripts/release.sh
+```
+
+Only after the DMG itself passes notarization, stapling, signature validation,
+and Gatekeeper does the script emit `Click-$VERSION.dmg` and update
+`download-site/version.json`.
 
 ## The `.clickpack` format
 
