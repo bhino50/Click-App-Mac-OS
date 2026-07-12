@@ -8,3 +8,13 @@ dist/
 # Xcode user state
 xcuserdata/
 *.xcuserstate
+
+# Local tooling
+.codex/
+
+# Signing material - never commit
+*.p8
+*.p12
+*.key
+*.cer
+*.certSigningRequest
