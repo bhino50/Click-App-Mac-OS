@@ -10,7 +10,7 @@ import os
 
 /// Schema of the download site's `version.json` manifest
 /// (see `download-site/version.json` in the repo).
-struct UpdateManifest: Decodable, Sendable {
+nonisolated struct UpdateManifest: Decodable, Sendable {
     let version: String
     let downloadURL: String
     let notes: String?
