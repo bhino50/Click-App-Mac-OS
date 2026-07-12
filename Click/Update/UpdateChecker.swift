@@ -152,13 +152,22 @@ final class UpdateChecker {
         alert.addButton(withTitle: "Later")
         NSApp.activate(ignoringOtherApps: true)
         guard alert.runModal() == .alertFirstButtonReturn else { return }
-        guard let downloadURL = URL(string: manifest.downloadURL),
-              let scheme = downloadURL.scheme?.lowercased(),
-              scheme == "https" || scheme == "http" else {
+        guard let downloadURL = Self.validatedDownloadURL(manifest.downloadURL) else {
             Self.log.error("Manifest downloadURL is invalid: \(manifest.downloadURL, privacy: .public)")
             return
         }
         NSWorkspace.shared.open(downloadURL)
+    }
+
+    /// Update downloads must remain encrypted in transit. The manifest is
+    /// remote content, so never let it downgrade users to plaintext HTTP.
+    nonisolated static func validatedDownloadURL(_ rawValue: String) -> URL? {
+        guard let url = URL(string: rawValue),
+              url.scheme?.lowercased() == "https",
+              url.host != nil else {
+            return nil
+        }
+        return url
     }
 
     private static var installedVersionString: String {

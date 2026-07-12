@@ -9,6 +9,7 @@ import Foundation
 /// Foundation-only on purpose so the comparison logic can be unit tested
 /// without AppKit or networking. Missing components compare as zero, so
 /// "1.0" == "1" and "1.0.1" > "1.0".
+nonisolated
 struct SemanticVersion: Comparable, CustomStringConvertible, Sendable {
     let components: [Int]
 
@@ -21,6 +22,7 @@ struct SemanticVersion: Comparable, CustomStringConvertible, Sendable {
         if trimmed.lowercased().hasPrefix("v") {
             trimmed = String(trimmed.dropFirst())
         }
+        guard trimmed.first?.isNumber == true else { return nil }
         let core = trimmed.split(whereSeparator: { $0 == "-" || $0 == "+" }).first ?? ""
         let parts = core.split(separator: ".")
         guard !parts.isEmpty else { return nil }
