@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Toolchain
+        run: xcodebuild -version
+      - name: Unit tests
+        run: >-
+          xcodebuild -project Click.xcodeproj -scheme Click
+          -configuration Debug -destination 'platform=macOS'
+          -derivedDataPath /tmp/ClickTests CODE_SIGNING_ALLOWED=NO test
+      - name: Release build
+        run: >-
+          xcodebuild -project Click.xcodeproj -scheme Click
+          -configuration Release -destination 'generic/platform=macOS'
+          -derivedDataPath /tmp/ClickRelease CODE_SIGNING_ALLOWED=NO build
+      - name: Static analyzer
+        run: >-
+          xcodebuild -project Click.xcodeproj -scheme Click
+          -configuration Debug -destination 'platform=macOS'
+          -derivedDataPath /tmp/ClickAnalyze CODE_SIGNING_ALLOWED=NO analyze

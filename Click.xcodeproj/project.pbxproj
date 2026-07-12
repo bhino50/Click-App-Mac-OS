@@ -9,11 +9,22 @@
 /* Begin PBXFileReference section */
 		CA30FCD02FBB799D00B8528D /* Click.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Click.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA30FCE02FBB799D00B8528D /* DefaultPacks */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources/DefaultPacks; sourceTree = "<group>"; };
+		CA30FCF02FBC000100B8528D /* ClickTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ClickTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXBuildFile section */
 		CA30FCE12FBB799D00B8528D /* DefaultPacks in Resources */ = {isa = PBXBuildFile; fileRef = CA30FCE02FBB799D00B8528D /* DefaultPacks */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		CA30FCF52FBC000100B8528D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CA30FCC82FBB799D00B8528D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CA30FCCF2FBB799D00B8528D;
+			remoteInfo = Click;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		CA30FCD22FBB799D00B8528D /* Click */ = {
@@ -21,10 +32,22 @@
 			path = Click;
 			sourceTree = "<group>";
 		};
+		CA30FCF12FBC000100B8528D /* ClickTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ClickTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		CA30FCCD2FBB799D00B8528D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CA30FCF22FBC000100B8528D /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -38,6 +61,7 @@
 			isa = PBXGroup;
 			children = (
 				CA30FCD22FBB799D00B8528D /* Click */,
+				CA30FCF12FBC000100B8528D /* ClickTests */,
 				CA30FCE02FBB799D00B8528D /* DefaultPacks */,
 				CA30FCD12FBB799D00B8528D /* Products */,
 			);
@@ -47,6 +71,7 @@
 			isa = PBXGroup;
 			children = (
 				CA30FCD02FBB799D00B8528D /* Click.app */,
+				CA30FCF02FBC000100B8528D /* ClickTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -76,6 +101,28 @@
 			productReference = CA30FCD02FBB799D00B8528D /* Click.app */;
 			productType = "com.apple.product-type.application";
 		};
+		CA30FCF42FBC000100B8528D /* ClickTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CA30FCF92FBC000100B8528D /* Build configuration list for PBXNativeTarget "ClickTests" */;
+			buildPhases = (
+				CA30FCF32FBC000100B8528D /* Sources */,
+				CA30FCF22FBC000100B8528D /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CA30FCF62FBC000100B8528D /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				CA30FCF12FBC000100B8528D /* ClickTests */,
+			);
+			name = ClickTests;
+			packageProductDependencies = (
+			);
+			productName = ClickTests;
+			productReference = CA30FCF02FBC000100B8528D /* ClickTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -88,6 +135,10 @@
 				TargetAttributes = {
 					CA30FCCF2FBB799D00B8528D = {
 						CreatedOnToolsVersion = 26.5;
+					};
+					CA30FCF42FBC000100B8528D = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = CA30FCCF2FBB799D00B8528D;
 					};
 				};
 			};
@@ -106,6 +157,7 @@
 			projectRoot = "";
 			targets = (
 				CA30FCCF2FBB799D00B8528D /* Click */,
+				CA30FCF42FBC000100B8528D /* ClickTests */,
 			);
 		};
 /* End PBXProject section */
@@ -129,7 +181,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CA30FCF32FBC000100B8528D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		CA30FCF62FBC000100B8528D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CA30FCCF2FBB799D00B8528D /* Click */;
+			targetProxy = CA30FCF52FBC000100B8528D /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		CA30FCD92FBB799D00B8528D /* Debug */ = {
@@ -314,6 +381,46 @@
 			};
 			name = Release;
 		};
+		CA30FCF72FBC000100B8528D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = brandon.ClickTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Click.app/Contents/MacOS/Click";
+			};
+			name = Debug;
+		};
+		CA30FCF82FBC000100B8528D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = brandon.ClickTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Click.app/Contents/MacOS/Click";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -331,6 +438,15 @@
 			buildConfigurations = (
 				CA30FCDC2FBB799D00B8528D /* Debug */,
 				CA30FCDD2FBB799D00B8528D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CA30FCF92FBC000100B8528D /* Build configuration list for PBXNativeTarget "ClickTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CA30FCF72FBC000100B8528D /* Debug */,
+				CA30FCF82FBC000100B8528D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
