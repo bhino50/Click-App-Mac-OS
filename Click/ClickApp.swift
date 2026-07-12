@@ -10,6 +10,8 @@ struct ClickApp: App {
             OnboardingPresenter(coordinator: appDelegate.coordinator)
         } label: {
             Image(systemName: appDelegate.coordinator.menuBarIconName)
+                .accessibilityLabel("Click")
+                .accessibilityValue(appDelegate.coordinator.menuBarAccessibilityStatus)
         }
         .menuBarExtraStyle(.window)
 

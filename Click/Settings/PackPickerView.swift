@@ -19,7 +19,24 @@ struct PackPickerView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(handle.name)
+                .accessibilityValue(
+                    coordinator.currentPack?.name == handle.name
+                        ? "\(subtitle(for: handle)), selected"
+                        : subtitle(for: handle)
+                )
+                .accessibilityAddTraits(
+                    coordinator.currentPack?.name == handle.name ? .isSelected : []
+                )
             }
+        }
+    }
+
+    private func subtitle(for handle: PackHandle) -> String {
+        switch handle.kind {
+        case .clickpack: return handle.author ?? "Native pack"
+        case .mechvibesMulti: return "Mechvibes pack"
+        case .mechvibesSingle: return "Mechvibes, sliced"
         }
     }
 }
